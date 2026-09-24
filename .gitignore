@@ -1,0 +1,19 @@
+# ข้อมูลลูกค้าและไฟล์สำรอง (ข้อมูลส่วนบุคคล ห้ามขึ้น git)
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# PIN และค่าตั้งค่าของเครื่องนี้
+.env
+
+# ไฟล์ที่สร้างใหม่ได้
+node_modules/
+dist/
+
+# เวอร์ชัน Electron เดิม (เก็บไว้ในเครื่องเฉยๆ)
+legacy-electron/
+
+.DS_Store
+.qodo/

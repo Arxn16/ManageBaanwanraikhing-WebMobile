@@ -1,0 +1,20 @@
+# บ้านแว่นไร่ขิง
+#   เปิดระบบ / อัปเดต :  docker compose up -d --build
+#   ดู log            :  docker compose logs -f
+#   ปิดระบบ           :  docker compose down
+# ตั้งค่า PIN และพอร์ตในไฟล์ .env
+
+services:
+  app:
+    build: .
+    image: banwaenraikhing:latest
+    container_name: banwaenraikhing
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      APP_PIN: ${APP_PIN:-1234}
+      BACKUP_KEEP: ${BACKUP_KEEP:-30}
+      TZ: Asia/Bangkok
+    volumes:
+      - ./data:/app/data

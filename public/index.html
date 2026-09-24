@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>บ้านแว่นไร่ขิง</title>
+  <meta name="theme-color" content="#db2777">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="บ้านแว่นไร่ขิง">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/app.js" defer></script>
+</head>
+
+<body data-page="menu" class="flex min-h-screen items-center justify-center bg-pink-100 p-4">
+
+  <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-10">
+
+    <h1 class="mb-2 text-center text-3xl font-bold sm:text-4xl">บ้านแว่นไร่ขิง</h1>
+    <p class="mb-8 text-center text-gray-500">ระบบจัดการข้อมูลลูกค้า</p>
+
+    <nav class="flex flex-col gap-4">
+      <a href="/add-customer.html" class="btn py-4 text-xl bg-blue-500 hover:bg-blue-600">➕ เพิ่มข้อมูลลูกค้า</a>
+      <a href="/customer-list.html" class="btn py-4 text-xl bg-green-500 hover:bg-green-600">📋 รายชื่อลูกค้า</a>
+      <a href="/sales-dashboard.html" class="btn py-4 text-xl bg-pink-500 hover:bg-pink-600">📊 แดชบอร์ดยอดขาย</a>
+    </nav>
+
+    <section class="mt-8 border-t border-gray-100 pt-6">
+      <h2 class="mb-1 font-semibold text-gray-700">💾 สำรองข้อมูล</h2>
+      <p id="backup-status" class="mb-3 text-sm text-gray-500">กำลังโหลด...</p>
+      <div class="grid grid-cols-2 gap-3">
+        <a href="/api/backup/download" download class="btn-light text-sm">ไฟล์ .db (ใช้กู้คืน)</a>
+        <a href="/api/backup/json" download class="btn-light text-sm">ไฟล์ JSON (เปิดอ่าน)</a>
+      </div>
+    </section>
+
+    <button id="logout-btn" type="button" onclick="logout(this)" class="mt-6 hidden w-full text-sm text-gray-500 underline">ออกจากระบบ</button>
+
+  </div>
+
+</body>
+</html>

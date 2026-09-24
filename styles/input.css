@@ -1,0 +1,77 @@
+/* ต้นฉบับ CSS ของระบบ — แก้ไฟล์นี้แล้วรัน `npm run build:css` เพื่อสร้าง public/css/app.css ใหม่
+   (ตอน build ด้วย Docker จะสร้างให้อัตโนมัติ) */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply antialiased;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* กัน iPhone ซูมหน้าจอเวลาแตะช่องกรอก (ต้องใหญ่อย่างน้อย 16px) */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-medium text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-sm {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-white transition disabled:opacity-50;
+  }
+
+  .btn-light {
+    @apply inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-xl bg-gray-100 px-4 py-2 font-medium text-gray-800 transition hover:bg-gray-200 disabled:opacity-50;
+  }
+
+  .field {
+    @apply flex flex-col gap-1 text-sm font-medium text-gray-700;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    @apply w-full rounded-lg border border-gray-300 bg-white p-3 font-normal text-gray-900 focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-200;
+  }
+
+  .field input[readonly] {
+    @apply bg-gray-100 text-gray-700;
+  }
+
+  .rx-box {
+    @apply rounded-2xl border border-pink-200 bg-pink-50 p-3 sm:p-4;
+  }
+
+  .rx-row {
+    @apply flex flex-col gap-2 py-2 md:flex-row md:items-end md:gap-3;
+  }
+
+  .rx-eye {
+    @apply text-lg font-bold text-pink-900 md:w-24 md:shrink-0 md:pb-2;
+  }
+
+  .rx-field {
+    @apply flex flex-col text-xs font-semibold text-pink-800;
+  }
+
+  .rx-field input {
+    @apply mt-1 w-full rounded-lg border border-pink-200 bg-white px-2 py-2 text-center font-normal text-gray-900 focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-200;
+  }
+
+  .card-hover {
+    @apply transition duration-200 hover:-translate-y-1 hover:shadow-lg;
+  }
+}

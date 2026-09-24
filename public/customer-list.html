@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>รายชื่อลูกค้า | บ้านแว่นไร่ขิง</title>
+  <meta name="theme-color" content="#db2777">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="บ้านแว่นไร่ขิง">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/app.js" defer></script>
+</head>
+
+<body data-page="customer-list" class="min-h-screen bg-pink-100 p-3 sm:p-6 lg:p-10">
+
+  <div class="mx-auto max-w-6xl rounded-2xl bg-white p-4 shadow sm:p-6">
+
+    <div class="mb-4 flex items-start justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-bold sm:text-3xl">รายชื่อลูกค้า</h1>
+        <p id="customer-total" class="text-sm text-gray-500"></p>
+      </div>
+      <a href="/" class="btn-light shrink-0">← เมนู</a>
+    </div>
+
+    <div class="mb-4 flex flex-col gap-2 sm:flex-row">
+      <input id="search-box" type="search" oninput="filterCustomers()" enterkeyhint="search" autocomplete="off"
+        placeholder="🔍 ค้นหาชื่อ หรือ เบอร์โทร"
+        class="w-full flex-1 rounded-xl border border-pink-300 bg-white px-4 py-3 text-pink-900 focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-200">
+      <div class="grid grid-cols-2 gap-2 sm:flex">
+        <a href="/add-customer.html" class="btn-light bg-blue-100 text-blue-800 hover:bg-blue-200">➕ เพิ่มลูกค้า</a>
+        <button type="button" onclick="exportToCSV()" class="btn-light bg-green-100 text-green-800 hover:bg-green-200">📥 ส่งออก CSV</button>
+      </div>
+    </div>
+
+    <!-- คอม/แท็บเล็ต: ตาราง -->
+    <div class="hidden md:block">
+      <table class="w-full border">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="border p-2">ลำดับ</th>
+            <th class="border p-2">วันที่</th>
+            <th class="border p-2">ชื่อ</th>
+            <th class="border p-2">เบอร์โทร</th>
+            <th class="border p-2">ราคา</th>
+            <th class="border p-2">คงเหลือ</th>
+            <th class="border p-2">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="customer-list">
+          <tr><td colspan="7" class="border p-6 text-center text-gray-400">กำลังโหลด...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- มือถือ: การ์ด -->
+    <div id="customer-cards" class="flex flex-col gap-3 md:hidden">
+      <p class="p-6 text-center text-gray-400">กำลังโหลด...</p>
+    </div>
+
+    <div id="pagination" class="mt-4 flex flex-wrap items-center gap-2"></div>
+  </div>
+
+</body>
+</html>
