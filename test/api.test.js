@@ -76,7 +76,8 @@ test('เพิ่มลูกค้า ค้นหา และเปิดด
 
   const a = await call('POST', '/api/customers', {
     name: 'สมชาย ใจดี', phone: '080-111-2222', date: '2026-01-15', age: '40',
-    r_sph: '-1.25', l_sph: '-1.50', detail: 'บรรทัดแรก\nบรรทัดสอง', frame: 'A1', lens: 'Blue', price: '1,500', deposit: 500
+    r_sph: '-1.25', l_sph: '-1.50', detail: 'บรรทัดแรก\nบรรทัดสอง', frame: 'A1', lens: 'Blue', price: '1,500', deposit: 500,
+    disease: 'เบาหวาน', old_glasses: 'R-1.00 L-1.25'
   })
   assert.equal(a.status, 201)
   const b = await call('POST', '/api/customers', { name: 'มานี', phone: '0899999999', price: 800, deposit: 800 })
@@ -86,6 +87,8 @@ test('เพิ่มลูกค้า ค้นหา และเปิดด
   assert.equal(got.data.customer.price, 1500)
   assert.equal(got.data.customer.remain, 1000)
   assert.equal(got.data.customer.detail, 'บรรทัดแรก\nบรรทัดสอง')
+  assert.equal(got.data.customer.disease, 'เบาหวาน')
+  assert.equal(got.data.customer.old_glasses, 'R-1.00 L-1.25')
 
   const noDate = await call('GET', `/api/customers/${b.data.id}`)
   assert.equal(noDate.data.customer.date, today(), 'ไม่กรอกวันที่ = วันนี้')
@@ -104,7 +107,8 @@ test('บันทึกครั้งใหม่ แก้ไขครั้�
   const id = list.data.rows[0].id
 
   const v = await call('POST', `/api/customers/${id}/visits`, {
-    name: 'สมชาย ใจดี', phone: '080-111-2222', age: '41', date: '2026-02-01', r_sph: '-1.75', price: 2000, deposit: 0
+    name: 'สมชาย ใจดี', phone: '080-111-2222', age: '41', date: '2026-02-01', r_sph: '-1.75', price: 2000, deposit: 0,
+    old_glasses: 'แว่นจากครั้งก่อน'
   })
   assert.equal(v.status, 201)
   assert.equal(v.data.parent_id, id)
@@ -118,6 +122,9 @@ test('บันทึกครั้งใหม่ แก้ไขครั้�
   assert.equal(visits.data.visits.length, 3)
   assert.equal(visits.data.customer.age, '41', 'อัปเดตข้อมูลส่วนตัวของลูกค้าหลัก')
   assert.equal(visits.data.customer.date, '2026-01-15', 'วันที่ครั้งแรกไม่เปลี่ยน')
+  assert.equal(visits.data.customer.disease, 'เบาหวาน', 'ไม่ได้ส่งโรคประจำตัวมา = ใช้ของเดิม')
+  assert.equal(visits.data.visits[1].old_glasses, 'แว่นจากครั้งก่อน')
+  assert.equal(visits.data.visits[2].old_glasses, '', 'แว่นเก่าเป็นของแต่ละครั้ง ไม่ติดมาจากครั้งก่อน')
 
   // แก้ไขครั้งที่ 1: รายละเอียดต้องไม่หาย (บั๊กเดิม)
   const first = visits.data.visits[0]
@@ -126,8 +133,14 @@ test('บันทึกครั้งใหม่ แก้ไขครั้�
   const after1 = (await call('GET', `/api/visits/${first.id}`)).data.visit
   assert.equal(after1.detail, 'บรรทัดแรก\nบรรทัดสอง')
   assert.equal(after1.remain, 1000)
+  assert.equal(after1.old_glasses, 'R-1.00 L-1.25', 'แก้ครั้งที่ 1 แล้วแว่นเก่าไม่หาย')
   const second = (await call('GET', `/api/visits/${v.data.id}`)).data.visit
   assert.equal(second.price, 2000, 'แก้ครั้งที่ 1 ต้องไม่กระทบครั้งที่ 2')
+  assert.equal((await call('PUT', `/api/visits/${v.data.id}`, { old_glasses: 'แว่นกันแดดเก่า' })).status, 200)
+  const second2 = (await call('GET', `/api/visits/${v.data.id}`)).data.visit
+  assert.equal(second2.old_glasses, 'แว่นกันแดดเก่า')
+  assert.equal(second2.r_sph, '-1.75', 'ช่องที่ไม่ได้ส่งมาไม่ถูกล้าง')
+  assert.equal(second2.price, 2000)
 
   // ครั้งแรกลบจากหน้านี้ไม่ได้ ครั้งอื่นลบได้
   assert.equal((await call('DELETE', `/api/visits/${first.id}`)).status, 400)
@@ -138,11 +151,12 @@ test('บันทึกครั้งใหม่ แก้ไขครั้�
 
 test('แก้ข้อมูลส่วนตัว', async () => {
   const id = (await call('GET', '/api/customers?search=' + encodeURIComponent('มานี'))).data.rows[0].id
-  const res = await call('PUT', `/api/customers/${id}`, { name: 'มานี มีนา', phone: '0899999999', date: '2026-04-01' })
+  const res = await call('PUT', `/api/customers/${id}`, { name: 'มานี มีนา', phone: '0899999999', date: '2026-04-01', disease: 'ความดันสูง' })
   assert.equal(res.status, 200)
   const c = (await call('GET', `/api/customers/${id}`)).data.customer
   assert.equal(c.name, 'มานี มีนา')
   assert.equal(c.date, '2026-04-01')
+  assert.equal(c.disease, 'ความดันสูง')
   assert.equal((await call('PUT', '/api/customers/99999', { name: 'x' })).status, 404)
 })
 
@@ -177,6 +191,8 @@ test('ส่งออก CSV / Excel และสำรองข้อมูล'
   const raw = Buffer.from(await (await fetch(base + '/api/export/csv', { headers: { Cookie: cookie } })).arrayBuffer())
   assert.deepEqual([...raw.subarray(0, 3)], [0xEF, 0xBB, 0xBF])
   assert.ok(csv.data.startsWith('"ลำดับ","วันที่","ชื่อ"'))
+  assert.ok(csv.data.split('\r\n')[0].endsWith('"คงเหลือ","โรคประจำตัว","แว่นเก่า"'), 'ช่องใหม่ต่อท้าย คอลัมน์เดิมอยู่ที่เดิม')
+  assert.match(csv.data, /,"เบาหวาน","R-1\.00 L-1\.25"\r?\n/)
   assert.equal(csv.data.trim().split('\r\n').length, 1 + 3)
 
   const xls = await call('GET', '/api/export/xls')
@@ -226,7 +242,7 @@ test('เปิดไฟล์ .db ของเวอร์ชันเดิม
   old.close()
   const c = createApp({ dataDir: dir, pin: '', log: { log () {}, error () {} } })
   const cols = c.db.prepare('PRAGMA table_info(customers)').all().map(r => r.name)
-  for (const col of ['parent_id', 'r_sph', 'l_pd', 'detail', 'deposit', 'remain']) assert.ok(cols.includes(col), col)
+  for (const col of ['parent_id', 'r_sph', 'l_pd', 'detail', 'deposit', 'remain', 'disease', 'old_glasses']) assert.ok(cols.includes(col), col)
   assert.equal(c.db.prepare('SELECT name FROM customers').get().name, 'เก่า')
   c.close()
   fs.rmSync(dir, { recursive: true, force: true })

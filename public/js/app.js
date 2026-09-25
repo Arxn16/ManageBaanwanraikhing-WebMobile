@@ -27,14 +27,14 @@
     let t
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms) }
   }
-  const telLink = phone => phone
-    ? `<a href="tel:${esc(String(phone).replace(/[^\d+]/g, ''))}" class="text-pink-700 underline decoration-pink-200 underline-offset-2">${esc(phone)}</a>`
+  const telLink = (phone, cls = 'text-pink-700 underline decoration-pink-200 underline-offset-2') => phone
+    ? `<a href="tel:${esc(String(phone).replace(/[^\d+]/g, ''))}" class="${cls}">${esc(phone)}</a>`
     : '-'
 
-  const PERSONAL_FIELDS = ['name', 'date', 'age', 'job', 'phone', 'address']
+  const PERSONAL_FIELDS = ['name', 'date', 'age', 'job', 'phone', 'address', 'disease']
   const RX_COLS = [['sph', 'SPH'], ['cyl', 'CYL'], ['ax', 'AX'], ['va', 'VA'], ['add', 'ADD'], ['pd', 'PD/SH']]
   const RX_FIELDS = ['r', 'l'].flatMap(side => RX_COLS.map(([k]) => `${side}_${k}`))
-  const ORDER_FIELDS = ['detail', 'frame', 'lens']
+  const ORDER_FIELDS = ['old_glasses', 'detail', 'frame', 'lens']
   const TEXT_FIELDS = [...PERSONAL_FIELDS, ...RX_FIELDS, ...ORDER_FIELDS]
 
   function toast (message, type = 'ok') {
@@ -126,9 +126,9 @@
   // ---------- ฟอร์ม ----------
 
   function rxEditorHtml (prefix = '') {
-    const eye = (side, label) => `
+    const eye = (side, label, color) => `
       <div class="rx-row">
-        <div class="rx-eye">${side} <span class="text-sm font-normal text-pink-700">${label}</span></div>
+        <div class="rx-eye"><span class="rx-badge ${color}">${side}</span>${label}</div>
         <div class="grid flex-1 grid-cols-3 gap-2 md:grid-cols-6">
           ${RX_COLS.map(([k, title]) => `
             <label class="rx-field">${title}
@@ -138,9 +138,15 @@
       </div>`
     return `
       <div class="rx-box">
-        <h2 class="mb-1 font-semibold text-pink-900">ค่าสายตา</h2>
-        ${eye('R', '(ขวา)')}
-        ${eye('L', '(ซ้าย)')}
+        <div class="card-head">
+          <span class="card-icon">👓</span>
+          <div>
+            <h2 class="card-title">ค่าสายตา</h2>
+            <p class="card-hint">R = ตาขวา · L = ตาซ้าย</p>
+          </div>
+        </div>
+        ${eye('R', 'ตาขวา', 'bg-green-700')}
+        ${eye('L', 'ตาซ้าย', 'bg-blue-700')}
       </div>`
   }
 
@@ -159,8 +165,17 @@
     for (const f of fields) setVal(prefix + f, record ? record[f] : '')
   }
 
+  // คงเหลือ = ราคา - มัดจำ (ช่องที่มี data-tone จะเปลี่ยนสี: แดง = ยังค้าง, เขียว = จ่ายครบ)
   function calculateRemain (prefix = '') {
-    setVal(prefix + 'remain', num(val(prefix + 'price')) - num(val(prefix + 'deposit')))
+    const price = num(val(prefix + 'price'))
+    const remain = price - num(val(prefix + 'deposit'))
+    setVal(prefix + 'remain', money(remain))
+    const el = $(prefix + 'remain')
+    if (!el || !el.hasAttribute('data-tone')) return
+    let tone = ''
+    if (remain > 0) tone = 'due'
+    else if (price > 0) tone = 'paid'
+    el.dataset.tone = tone
   }
 
   // ---------- หน้าต่างรายละเอียดลูกค้า (ใช้ร่วมกันหลายหน้า) ----------
@@ -190,11 +205,11 @@
     modal.className = 'fixed inset-0 z-40 hidden flex items-end justify-center bg-black/50 sm:items-center sm:p-4'
     modal.innerHTML = `
       <div class="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:max-w-3xl sm:rounded-3xl">
-        <div class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-pink-100 bg-white px-4 py-3 sm:px-6">
-          <h2 class="text-xl font-bold text-pink-900">รายละเอียดลูกค้า</h2>
-          <button type="button" data-close class="rounded-full bg-pink-100 px-4 py-2 text-pink-700 hover:bg-pink-200">ปิด</button>
+        <div class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-green-100 bg-white px-4 py-3 sm:px-6">
+          <h2 class="text-2xl font-bold text-green-900">📋 รายละเอียดลูกค้า</h2>
+          <button type="button" data-close class="rounded-full bg-green-700 px-5 py-2.5 text-lg font-semibold text-white hover:bg-green-800">✕ ปิด</button>
         </div>
-        <div id="detail-content" class="p-4 sm:p-6"></div>
+        <div id="detail-content" class="bg-green-50 p-3 sm:p-6"></div>
       </div>`
     modal.addEventListener('click', e => {
       if (e.target === modal || e.target.closest('[data-close]')) closeCustomerDetail()
@@ -203,42 +218,53 @@
     return modal
   }
 
+  // ช่องข้อมูลแบบ "หัวข้อ / ค่า" ในหน้าต่างรายละเอียด
+  const infoItem = (label, value, cls = '') => `
+    <div class="info-item ${cls}">
+      <p class="info-label">${label}</p>
+      <p class="info-value">${value}</p>
+    </div>`
+
+  const orDash = v => esc(v) || '<span class="text-gray-400">-</span>'
+
   function renderVisit (v, index) {
-    const cell = x => `<td class="border border-pink-200 px-1 py-2 text-center sm:px-2">${esc(x)}</td>`
+    const cell = x => `<td class="border border-green-100 px-0.5 py-2.5 text-center font-semibold sm:px-2">${esc(x)}</td>`
     const eyeRow = side => `
       <tr>
-        <td class="border border-pink-200 px-1 py-2 text-center font-semibold sm:px-2">${side.toUpperCase()}</td>
+        <th class="border border-green-100 px-1 py-2.5 text-center font-bold sm:px-2 ${side === 'r' ? 'text-green-700' : 'text-blue-700'}">${side.toUpperCase()}</th>
         ${RX_COLS.map(([k]) => cell(v[`${side}_${k}`])).join('')}
       </tr>`
     const remain = num(v.remain)
     return `
-      <div class="mb-4 rounded-2xl border border-pink-200 bg-white p-3 last:mb-0 sm:p-4">
+      <div class="visit-card">
         <div class="mb-3 flex items-start justify-between gap-3">
           <div>
-            <p class="text-lg font-semibold text-pink-900">ครั้งที่ ${index + 1}</p>
-            <p class="text-sm text-gray-600">วันที่ ${esc(v.date) || '-'} · ราคา ${baht(v.price)}</p>
+            <p class="text-xl font-bold text-gray-900">ครั้งที่ ${index + 1}</p>
+            <p class="text-base text-gray-600">📅 ${esc(v.date) || '-'}</p>
           </div>
-          <button type="button" onclick="editVisitRecord(${v.id})" class="btn-sm bg-blue-500 hover:bg-blue-600">แก้ไข</button>
+          <button type="button" onclick="editVisitRecord(${v.id})" class="btn bg-green-700 px-4 py-2.5 hover:bg-green-800">✏️ แก้ไข</button>
         </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full border-collapse text-sm text-pink-900">
+        <div class="overflow-x-auto rounded-xl ring-1 ring-green-200">
+          <table class="min-w-full border-collapse text-sm text-gray-900 sm:text-base">
             <thead>
-              <tr class="bg-pink-100">
-                <th class="border border-pink-200 px-1 py-2 text-xs sm:px-2 sm:text-sm">ตา</th>
-                ${RX_COLS.map(([, t]) => `<th class="border border-pink-200 px-1 py-2 text-xs sm:px-2 sm:text-sm">${t}</th>`).join('')}
+              <tr class="bg-green-50 text-green-800">
+                <th class="border border-green-100 px-0.5 py-2 sm:px-2">ตา</th>
+                ${RX_COLS.map(([, t]) => `<th class="border border-green-100 px-0.5 py-2 sm:px-2">${t}</th>`).join('')}
               </tr>
             </thead>
             <tbody>${eyeRow('r')}${eyeRow('l')}</tbody>
           </table>
         </div>
-        <div class="mt-3 grid grid-cols-1 gap-2 text-sm text-gray-800 sm:text-base">
-          <div class="whitespace-pre-line"><span class="font-semibold">หมายเหตุ / รายละเอียด:</span> ${esc(v.detail) || '-'}</div>
-          <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <div><span class="font-semibold">กรอบแว่น:</span> ${esc(v.frame) || '-'}</div>
-            <div><span class="font-semibold">เลนส์:</span> ${esc(v.lens) || '-'}</div>
-            <div><span class="font-semibold">มัดจำ:</span> ${money(v.deposit)} · <span class="font-semibold">คงเหลือ:</span>
-              <span class="${remain > 0 ? 'font-semibold text-red-600' : 'text-green-700'}">${money(remain)}</span> บาท</div>
-          </div>
+        <div class="info-grid mt-4">
+          ${infoItem('แว่นเก่า', orDash(v.old_glasses), 'col-span-2')}
+          ${infoItem('รายละเอียดเพิ่มเติม (Re)', `<span class="whitespace-pre-line">${orDash(v.detail)}</span>`, 'col-span-2')}
+          ${infoItem('กรอบแว่น', orDash(v.frame))}
+          ${infoItem('เลนส์', orDash(v.lens))}
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-green-50 p-3 text-center ring-1 ring-green-100">
+          ${infoItem('ราคา', money(v.price))}
+          ${infoItem('มัดจำ', money(v.deposit))}
+          ${infoItem('คงเหลือ', `<span class="text-xl font-bold ${remain > 0 ? 'text-red-700' : 'text-green-700'}">${money(remain)}</span>`)}
         </div>
       </div>`
   }
@@ -248,23 +274,40 @@
     const modal = ensureDetailModal()
     detailCustomerId = c.id
     const totalRemain = visits.reduce((s, v) => s + num(v.remain), 0)
-    const info = [['วันที่', esc(c.date) || '-'], ['ชื่อ', esc(c.name) || '-'], ['เบอร์โทร', telLink(c.phone)],
-      ['อายุ', esc(c.age) || '-'], ['อาชีพ', esc(c.job) || '-'], ['ที่อยู่', esc(c.address) || '-']]
+    const disease = c.disease
+      ? `<span class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-base font-bold text-amber-900 ring-1 ring-amber-300">⚠️ ${esc(c.disease)}</span>`
+      : orDash('')
+    const phone = c.phone
+      ? telLink(c.phone, 'text-green-800 underline decoration-green-300 underline-offset-4')
+      : '<span class="text-gray-500">ไม่มีเบอร์โทร</span>'
     $('detail-content').innerHTML = `
       <div class="grid grid-cols-1 gap-4">
-        <div class="grid grid-cols-1 gap-2 text-gray-800 sm:grid-cols-2">
-          ${info.map(([k, v]) => `<div><span class="font-semibold">${k}:</span> ${v}</div>`).join('')}
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <a href="/edit-customer.html?id=${c.id}" class="btn-sm bg-blue-500 hover:bg-blue-600">แก้ไขข้อมูลลูกค้า</a>
-          <a href="/edit-customer.html?id=${c.id}&new=1" class="btn-sm bg-indigo-500 hover:bg-indigo-600">➕ เพิ่มการมาครั้งใหม่</a>
-        </div>
-        <div class="rounded-3xl border border-pink-200 bg-pink-50 p-3 sm:p-4">
-          <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <h3 class="text-lg font-bold text-pink-900">ประวัติค่าสายตา (${visits.length} ครั้ง)</h3>
-            ${totalRemain > 0 ? `<span class="text-sm font-semibold text-red-600">ค้างชำระรวม ${baht(totalRemain)}</span>` : ''}
+        <div class="visit-card">
+          <div class="card-head">
+            <span class="card-icon">👤</span>
+            <div class="min-w-0">
+              <h3 class="card-title break-words">${orDash(c.name)}</h3>
+              <p class="text-lg font-medium">${phone}</p>
+            </div>
           </div>
-          ${visits.map(renderVisit).join('')}
+          <div class="info-grid">
+            ${infoItem('วันที่มาครั้งแรก', orDash(c.date))}
+            ${infoItem('อายุ', c.age ? `${esc(c.age)} ปี` : orDash(''))}
+            ${infoItem('อาชีพ', orDash(c.job))}
+            ${infoItem('โรคประจำตัว', disease)}
+            ${infoItem('ที่อยู่', orDash(c.address), 'col-span-2')}
+          </div>
+          <div class="mt-5 flex flex-wrap gap-2">
+            <a href="/edit-customer.html?id=${c.id}" class="btn bg-green-700 hover:bg-green-800">✏️ แก้ไขข้อมูลลูกค้า</a>
+            <a href="/edit-customer.html?id=${c.id}&new=1" class="btn bg-blue-700 hover:bg-blue-800">➕ เพิ่มการมาครั้งใหม่</a>
+          </div>
+        </div>
+        <div>
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-2 px-1">
+            <h3 class="text-xl font-bold text-green-900">👓 ประวัติค่าสายตา (${visits.length} ครั้ง)</h3>
+            ${totalRemain > 0 ? `<span class="rounded-full bg-red-50 px-3 py-1 text-base font-bold text-red-700 ring-1 ring-red-200">ค้างชำระรวม ${baht(totalRemain)}</span>` : ''}
+          </div>
+          <div class="grid grid-cols-1 gap-3">${visits.map(renderVisit).join('')}</div>
         </div>
       </div>`
     openModal(modal)
@@ -283,8 +326,8 @@
     modal.dataset.modal = ''
     modal.className = 'fixed inset-0 z-50 hidden flex items-end justify-center bg-black/50 sm:items-center sm:p-4'
     modal.innerHTML = `
-      <div class="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-4 shadow-2xl sm:max-w-3xl sm:rounded-3xl sm:p-8">
-        <h2 class="mb-4 text-xl font-bold text-pink-900 sm:text-2xl">แก้ไขข้อมูลการมาครั้งนี้</h2>
+      <div class="big-fields max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-4 shadow-2xl sm:max-w-3xl sm:rounded-3xl sm:p-8">
+        <h2 class="mb-4 text-2xl font-bold text-green-900">✏️ แก้ไขข้อมูลการมาครั้งนี้</h2>
         <div class="mb-4 grid grid-cols-2 gap-3">
           <label class="field col-span-2 sm:col-span-1">วันที่<input type="date" id="ev-date"></label>
           <label class="field">ราคา<input id="ev-price" inputmode="decimal" oninput="calculateRemain('ev-')"></label>
@@ -292,16 +335,17 @@
           <label class="field">คงเหลือ<input id="ev-remain" readonly tabindex="-1"></label>
         </div>
         ${rxEditorHtml('ev-')}
-        <label class="field mt-4">หมายเหตุ / รายละเอียด<textarea id="ev-detail" rows="3"></textarea></label>
+        <label class="field mt-4">แว่นเก่า<input id="ev-old_glasses" autocomplete="off" autocapitalize="off"></label>
+        <label class="field mt-3">รายละเอียดเพิ่มเติม (Re)<textarea id="ev-detail" rows="3"></textarea></label>
         <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label class="field">กรอบแว่น<input id="ev-frame"></label>
           <label class="field">เลนส์<input id="ev-lens"></label>
         </div>
         <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
-          <button type="button" id="ev-delete" onclick="deleteVisitRecord(this)" class="btn hidden bg-red-500 hover:bg-red-600">🗑️ ลบครั้งนี้</button>
+          <button type="button" id="ev-delete" onclick="deleteVisitRecord(this)" class="btn hidden bg-red-600 text-lg hover:bg-red-700">🗑️ ลบครั้งนี้</button>
           <div class="flex flex-col-reverse gap-3 sm:ml-auto sm:flex-row">
-            <button type="button" onclick="closeEditVisitModal()" class="btn-light">ยกเลิก</button>
-            <button type="button" onclick="updateVisitRecord(this)" class="btn bg-blue-500 hover:bg-blue-600">บันทึก</button>
+            <button type="button" onclick="closeEditVisitModal()" class="btn-light px-6 py-3 text-lg">ยกเลิก</button>
+            <button type="button" onclick="updateVisitRecord(this)" class="btn bg-green-700 px-8 text-lg font-semibold hover:bg-green-800">💾 บันทึก</button>
           </div>
         </div>
       </div>`
@@ -486,8 +530,8 @@
     fillFields(TEXT_FIELDS, null)
     setVal('price', '')
     setVal('deposit', '')
-    setVal('remain', '')
     setVal('date', isoDate())
+    calculateRemain()
   }
 
   async function saveCustomer () {
@@ -503,8 +547,8 @@
     toast('บันทึกข้อมูลสำเร็จ')
     const result = $('result')
     if (result) {
-      result.innerHTML = `บันทึก "${esc(body.name)}" สำเร็จ ·
-        <button type="button" onclick="showCustomerDetail(${id})" class="underline">ดูข้อมูล</button>`
+      result.innerHTML = `✅ บันทึก "${esc(body.name)}" สำเร็จ
+        <button type="button" onclick="showCustomerDetail(${id})" class="font-semibold underline underline-offset-2">ดูข้อมูล →</button>`
     }
     resetAddForm()
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -513,6 +557,7 @@
   function initAddCustomer () {
     mountRxEditor('rx-editor')
     setVal('date', isoDate())
+    calculateRemain()
   }
 
   // ---------- หน้าแก้ไข / บันทึกครั้งใหม่ ----------

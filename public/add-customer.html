@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>เพิ่มข้อมูลลูกค้า | บ้านแว่นไร่ขิง</title>
-  <meta name="theme-color" content="#db2777">
+  <meta name="theme-color" content="#15803d">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" type="image/png" href="/icons/icon-192.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -15,48 +15,75 @@
   <script src="/js/app.js" defer></script>
 </head>
 
-<body data-page="add-customer" class="min-h-screen bg-pink-100 p-3 sm:p-6 lg:p-10">
+<body data-page="add-customer" class="min-h-screen bg-green-50 p-3 sm:p-6 lg:p-10">
 
-  <div class="mx-auto max-w-4xl rounded-2xl bg-white p-4 shadow sm:p-6">
+  <div class="mx-auto max-w-4xl">
 
-    <div class="mb-6 flex items-start justify-between gap-3">
-      <div>
-        <h1 class="text-2xl font-bold sm:text-3xl">เพิ่มข้อมูลลูกค้า</h1>
-        <p class="text-gray-500">กรอกข้อมูลลูกค้าแล้วกดบันทึก</p>
+    <header class="page-hero">
+      <div class="relative z-10 flex items-start justify-between gap-3">
+        <div>
+          <p class="text-base font-medium text-green-100">บ้านแว่นไร่ขิง</p>
+          <h1 class="mt-0.5 text-3xl font-bold sm:text-4xl">เพิ่มข้อมูลลูกค้า</h1>
+          <p class="mt-1 text-lg text-green-50">กรอกข้อมูลลูกค้าแล้วกดบันทึก</p>
+        </div>
+        <a href="/" class="hero-back">← เมนู</a>
       </div>
-      <a href="/" class="btn-light shrink-0">← เมนู</a>
-    </div>
+    </header>
 
-    <div id="result" class="mb-4 empty:hidden rounded-xl border border-green-200 bg-green-50 p-3 font-medium text-green-800"></div>
+    <div id="result" class="result-banner"></div>
 
-    <div class="grid grid-cols-1 gap-4">
+    <div class="grid grid-cols-1 gap-4 sm:gap-5">
 
       <div id="rx-editor"></div>
 
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <label class="field">ชื่อ<input id="name" autocomplete="off" placeholder="ชื่อ"></label>
-        <label class="field">เบอร์โทร<input id="phone" type="tel" autocomplete="off" placeholder="เบอร์โทร"></label>
-        <label class="field">วันที่<input id="date" type="date"></label>
-        <label class="field">อายุ<input id="age" inputmode="numeric" autocomplete="off" placeholder="อายุ"></label>
-        <label class="field">อาชีพ<input id="job" autocomplete="off" placeholder="อาชีพ"></label>
-        <label class="field md:col-span-2">ที่อยู่<input id="address" autocomplete="off" placeholder="ที่อยู่"></label>
-        <label class="field md:col-span-2">รายละเอียดเพิ่มเติม<textarea id="detail" rows="3" placeholder="รายละเอียดเพิ่มเติม"></textarea></label>
-        <label class="field">กรอบแว่น<input id="frame" autocomplete="off" placeholder="กรอบแว่น"></label>
-        <label class="field">เลนส์<input id="lens" autocomplete="off" placeholder="เลนส์"></label>
-      </div>
+      <section class="form-card big-fields">
+        <div class="card-head">
+          <span class="card-icon">👤</span>
+          <h2 class="card-title">ข้อมูลลูกค้า</h2>
+        </div>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <label class="field">ชื่อ<input id="name" autocomplete="off" placeholder="ชื่อ"></label>
+          <label class="field">เบอร์โทร<input id="phone" type="tel" autocomplete="off" placeholder="เบอร์โทร"></label>
+          <label class="field">วันที่<input id="date" type="date"></label>
+          <label class="field">อายุ<input id="age" inputmode="numeric" autocomplete="off" placeholder="อายุ"></label>
+          <label class="field">อาชีพ<input id="job" autocomplete="off" placeholder="อาชีพ"></label>
+          <label class="field">โรคประจำตัว<input id="disease" autocomplete="off" placeholder="โรคประจำตัว"></label>
+          <label class="field md:col-span-2">ที่อยู่<input id="address" autocomplete="off" placeholder="ที่อยู่"></label>
+        </div>
+      </section>
 
-      <div class="grid grid-cols-3 gap-3 rounded-2xl bg-gray-50 p-3 sm:gap-4 sm:p-4">
-        <label class="field">ราคา<input id="price" inputmode="decimal" oninput="calculateRemain()" placeholder="0"></label>
-        <label class="field">มัดจำ<input id="deposit" inputmode="decimal" oninput="calculateRemain()" placeholder="0"></label>
-        <label class="field">คงเหลือ<input id="remain" readonly tabindex="-1" placeholder="0"></label>
-      </div>
+      <section class="form-card big-fields">
+        <div class="card-head">
+          <span class="card-icon">🧾</span>
+          <h2 class="card-title">รายการสั่งทำ</h2>
+        </div>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <label class="field md:col-span-2">แว่นเก่า<input id="old_glasses" autocomplete="off" autocapitalize="off" placeholder="แว่นเก่า"></label>
+          <label class="field md:col-span-2">รายละเอียดเพิ่มเติม (Re)<textarea id="detail" rows="3" placeholder="รายละเอียดเพิ่มเติม"></textarea></label>
+          <label class="field">กรอบแว่น<input id="frame" autocomplete="off" placeholder="กรอบแว่น"></label>
+          <label class="field">เลนส์<input id="lens" autocomplete="off" placeholder="เลนส์"></label>
+        </div>
+      </section>
+
+      <section class="form-card big-fields">
+        <div class="card-head">
+          <span class="card-icon">💰</span>
+          <div>
+            <h2 class="card-title">ค่าใช้จ่าย (บาท)</h2>
+            <p class="card-hint">คงเหลือคำนวณให้อัตโนมัติ</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+          <label class="field">ราคา<input id="price" inputmode="decimal" oninput="calculateRemain()" placeholder="0"></label>
+          <label class="field">มัดจำ<input id="deposit" inputmode="decimal" oninput="calculateRemain()" placeholder="0"></label>
+          <label class="remain-tile col-span-2 sm:col-span-1">คงเหลือ<input id="remain" readonly tabindex="-1" placeholder="0" data-tone=""></label>
+        </div>
+      </section>
 
     </div>
 
-    <div class="mt-6">
-      <button type="button" onclick="saveCustomer(this)" class="btn w-full bg-blue-500 text-lg hover:bg-blue-600 sm:w-auto">
-        💾 บันทึกข้อมูล
-      </button>
+    <div class="mt-5 sm:mt-6 sm:flex sm:justify-end">
+      <button type="button" onclick="saveCustomer(this)" class="btn-save">💾 บันทึกข้อมูล</button>
     </div>
 
   </div>

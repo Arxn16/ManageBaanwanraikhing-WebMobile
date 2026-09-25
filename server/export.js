@@ -1,12 +1,13 @@
 'use strict'
 
-// ส่งออกข้อมูลเป็น CSV / Excel (คอลัมน์เหมือนเวอร์ชันเดิม)
+// ส่งออกข้อมูลเป็น CSV / Excel (คอลัมน์เหมือนเวอร์ชันเดิม ส่วนช่องที่เพิ่มทีหลังต่อท้ายไว้ คอลัมน์เดิมจะได้อยู่ที่เดิม)
 
 const HEADERS = [
   'ลำดับ', 'วันที่', 'ชื่อ', 'เบอร์โทร', 'อายุ', 'อาชีพ', 'ที่อยู่',
   'R SPH', 'R CYL', 'R AX', 'R VA', 'R ADD', 'R PD/SH',
   'L SPH', 'L CYL', 'L AX', 'L VA', 'L ADD', 'L PD/SH',
-  'กรอบแว่น', 'เลนส์', 'รายละเอียด', 'ราคา', 'มัดจำ', 'คงเหลือ'
+  'กรอบแว่น', 'เลนส์', 'รายละเอียด', 'ราคา', 'มัดจำ', 'คงเหลือ',
+  'โรคประจำตัว', 'แว่นเก่า'
 ]
 
 const FIELDS = [
@@ -18,11 +19,16 @@ const FIELDS = [
 
 const MONEY = ['price', 'deposit', 'remain']
 
+const EXTRA = ['disease', 'old_glasses']
+
+const str = v => (v === null || v === undefined ? '' : String(v))
+
 function toRows (records) {
   return records.map((r, i) => [
     i + 1,
-    ...FIELDS.map(f => (r[f] === null || r[f] === undefined ? '' : String(r[f]))),
-    ...MONEY.map(f => Number(r[f] || 0))
+    ...FIELDS.map(f => str(r[f])),
+    ...MONEY.map(f => Number(r[f] || 0)),
+    ...EXTRA.map(f => str(r[f]))
   ])
 }
 

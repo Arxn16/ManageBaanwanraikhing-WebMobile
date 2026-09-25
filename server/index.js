@@ -18,6 +18,8 @@ const dates = require('./dates')
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public')
 const VISIT_FIELDS = ['date', ...RX_FIELDS, ...ORDER_FIELDS]
+const PERSONAL_KEEP_DATE = PERSONAL_FIELDS.filter(k => k !== 'date')
+const setList = fields => fields.map(f => `${f} = ?`).join(', ')
 
 // ---------- ตัวช่วย ----------
 
@@ -118,13 +120,12 @@ function createApp (options = {}) {
     insert: db.prepare(`
       INSERT INTO customers (parent_id, ${TEXT_FIELDS.join(', ')}, price, deposit, remain)
       VALUES (?, ${TEXT_FIELDS.map(() => '?').join(', ')}, ?, ?, ?)`),
-    updatePersonal: db.prepare('UPDATE customers SET name = ?, date = ?, age = ?, job = ?, phone = ?, address = ? WHERE id = ?'),
-    updatePersonalKeepDate: db.prepare('UPDATE customers SET name = ?, age = ?, job = ?, phone = ?, address = ? WHERE id = ?'),
+    updatePersonal: db.prepare(`UPDATE customers SET ${setList(PERSONAL_FIELDS)} WHERE id = ?`),
+    updatePersonalKeepDate: db.prepare(`UPDATE customers SET ${setList(PERSONAL_KEEP_DATE)} WHERE id = ?`),
     updateVisit: db.prepare(`
       UPDATE customers SET
         date = ?, price = ?, deposit = ?, remain = ?,
-        ${RX_FIELDS.map(f => `${f} = ?`).join(', ')},
-        detail = ?, frame = ?, lens = ?
+        ${setList([...RX_FIELDS, ...ORDER_FIELDS])}
       WHERE id = ?`),
     visitsOf: db.prepare('SELECT * FROM customers WHERE id = ? OR parent_id = ? ORDER BY date ASC, id ASC'),
     deleteById: db.prepare('DELETE FROM customers WHERE id = ?'),
@@ -251,7 +252,7 @@ function createApp (options = {}) {
     const row = mustGet(id)
     const f = mergeText(row, req.body || {}, PERSONAL_FIELDS)
     if (!f.name) throw httpError(400, 'กรุณากรอกชื่อลูกค้า')
-    q.updatePersonal.run(f.name, f.date, f.age, f.job, f.phone, f.address, id)
+    q.updatePersonal.run(...PERSONAL_FIELDS.map(k => f[k]), id)
     res.json({ ok: true })
   })
 
@@ -283,7 +284,7 @@ function createApp (options = {}) {
     const body = req.body || {}
     // ข้อมูลส่วนตัวที่ไม่ได้ส่งมา ใช้ของลูกค้าคนเดิม / ค่าสายตาและราคาเป็นของครั้งใหม่
     const f = {
-      ...mergeText(root || row, body, PERSONAL_FIELDS.filter(k => k !== 'date')),
+      ...mergeText(root || row, body, PERSONAL_KEEP_DATE),
       ...pickText(body, ['date', ...RX_FIELDS, ...ORDER_FIELDS])
     }
     if (!f.name) throw httpError(400, 'กรุณากรอกชื่อลูกค้า')
@@ -291,7 +292,7 @@ function createApp (options = {}) {
     const price = money(body.price)
     const deposit = money(body.deposit)
     const id = transaction(db, () => {
-      q.updatePersonalKeepDate.run(f.name, f.age, f.job, f.phone, f.address, root ? root.id : row.id)
+      q.updatePersonalKeepDate.run(...PERSONAL_KEEP_DATE.map(k => f[k]), root ? root.id : row.id)
       const info = q.insert.run(rootId, ...TEXT_FIELDS.map(k => f[k]), price, deposit, round2(price - deposit))
       return Number(info.lastInsertRowid)
     })
@@ -314,7 +315,7 @@ function createApp (options = {}) {
     q.updateVisit.run(
       f.date, price, deposit, round2(price - deposit),
       ...RX_FIELDS.map(k => f[k]),
-      f.detail, f.frame, f.lens,
+      ...ORDER_FIELDS.map(k => f[k]),
       id
     )
     res.json({ ok: true })
