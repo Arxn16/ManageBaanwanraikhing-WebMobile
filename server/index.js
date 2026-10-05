@@ -76,7 +76,10 @@ const mergeMoney = (existing, body, key) => (has(body, key) ? money(body[key]) :
 
 function lanAddresses () {
   const out = []
-  for (const list of Object.values(os.networkInterfaces())) {
+  let ifaces = {}
+  // Android (Termux) บางรุ่นไม่ให้อ่านข้อมูล network ถ้าอ่านไม่ได้ให้ข้ามไป ระบบจะได้ไม่ดับ
+  try { ifaces = os.networkInterfaces() } catch (_) { return out }
+  for (const list of Object.values(ifaces)) {
     for (const a of list || []) {
       if (a.family === 'IPv4' && !a.internal) out.push(a.address)
     }
