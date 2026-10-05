@@ -47,6 +47,72 @@
 - Firewall ของเครื่อง server อนุญาต Docker / พอร์ต 3000
 - Wi-Fi ที่ใช้ไม่ใช่ Wi-Fi สำหรับแขก (มักตั้งไว้ไม่ให้เครื่องในวงเห็นกัน)
 
+## ใช้มือถือ Android เป็น server (Termux)
+
+ใช้มือถือ Android เครื่องหนึ่งเป็นเครื่อง server แทนคอมได้ เครื่องอื่นในร้านเปิดผ่าน Wi-Fi เหมือนเดิม
+
+**ติดตั้งครั้งแรก**
+
+1. ลงแอป [Termux](https://f-droid.org/packages/com.termux/) จาก F-Droid หรือ GitHub (ไม่ใช่ Play Store)
+   ถ้าอยากให้ระบบเปิดเองตอนเปิดเครื่อง ลง [Termux:Boot](https://f-droid.org/packages/com.termux.boot/) จากที่เดียวกัน แล้วเปิดแอป Termux:Boot 1 ครั้ง
+2. เปิด Termux แล้วพิมพ์ `termux-setup-storage` (กดอนุญาต) ตามด้วย `pkg install -y unzip`
+3. เอาไฟล์ `banwaen-termux.zip` ไปไว้ในโฟลเดอร์ Download ของมือถือ (หรือส่งผ่าน SSH ดูหัวข้อถัดไป)
+4. พิมพ์
+
+   ```bash
+   cd ~ && unzip -o ~/storage/downloads/banwaen-termux.zip
+   sh ~/Manage-Banwaenraikhing/termux/install.sh
+   ```
+
+   สคริปต์จะลงโปรแกรมที่ต้องใช้ นำเข้าข้อมูลลูกค้า ตั้งให้ระบบทำงานเบื้องหลัง (ดับแล้วเปิดใหม่เอง)
+   และบอกที่อยู่สำหรับเปิดจากเครื่องอื่น รันซ้ำได้ ข้อมูลที่มีในมือถืออยู่แล้วจะไม่ถูกทับ
+5. ตั้งค่ามือถือ
+   - แบตเตอรี่ของแอป Termux ตั้งเป็น "ไม่จำกัด" (Unrestricted) และเสียบสายชาร์จไว้
+   - อย่ากด Exit ที่แจ้งเตือนของ Termux (ระบบจะปิดไปด้วย)
+   - ล็อก IP มือถือในเราเตอร์ และในตั้งค่า Wi-Fi ของมือถือให้ใช้ MAC ของเครื่อง (ไม่ใช่ MAC แบบสุ่ม)
+   - มือถือบางยี่ห้อ (Xiaomi, OPPO, vivo, Huawei) ต้องเปิด "เริ่มอัตโนมัติ" (Autostart) ให้ Termux และ Termux:Boot ด้วย
+
+ใช้ git แทน zip ก็ได้: `pkg install -y git && git clone https://github.com/Arxn16/ManageBaanwanraikhing-WebMobile.git ~/Manage-Banwaenraikhing`
+แล้ววางไฟล์ `.db` ไว้ในโฟลเดอร์ Download (ตั้งชื่อขึ้นต้นด้วย `banwaenraikhing`) ก่อนรัน `install.sh`
+
+**พิมพ์คำสั่งจาก Mac แทนพิมพ์ในมือถือ (SSH)**
+
+ในมือถือพิมพ์ครั้งแรก: `pkg install -y openssh` แล้ว `passwd` (ตั้งรหัสผ่าน) แล้ว `sshd` แล้ว `whoami` (ได้ชื่อผู้ใช้ เช่น `u0_a234`)
+จากนั้นบน Mac
+
+```bash
+scp -P 8022 banwaen-termux.zip u0_a234@<IP มือถือ>:~/   # ส่งไฟล์เข้ามือถือ
+ssh -p 8022 u0_a234@<IP มือถือ>                         # เข้าไปสั่งงานมือถือ
+```
+
+ถ้าส่งไฟล์ด้วย `scp` ให้ใช้ `unzip -o ~/banwaen-termux.zip` แทนในขั้นที่ 4 ถ้าปิด Termux ไปแล้วต้องพิมพ์ `sshd` ในมือถือใหม่
+
+**คำสั่งที่ใช้บ่อยบนมือถือ**
+
+| งาน | คำสั่ง |
+| --- | --- |
+| ดูสถานะ | `sv status banwaenraikhing` |
+| รีสตาร์ต | `sv restart banwaenraikhing` |
+| ปิดชั่วคราว / เปิด | `sv down banwaenraikhing` / `sv up banwaenraikhing` |
+| ไม่ให้เปิดเองอัตโนมัติ | `sv-disable banwaenraikhing` (เปิดกลับ: `sv-enable banwaenraikhing`) |
+| ดู log | `tail -f $PREFIX/var/log/sv/banwaenraikhing/current` |
+| นำเข้าข้อมูล / กู้คืน | `cd ~/Manage-Banwaenraikhing && node server/import.js ~/storage/downloads/<ชื่อไฟล์>.db` |
+| อัปเดตโค้ด | unzip ไฟล์ใหม่ทับ แล้วรัน `sh ~/Manage-Banwaenraikhing/termux/install.sh` อีกครั้ง |
+
+ถ้าพิมพ์ `sv` แล้วขึ้น `unable to change to service directory` (มักเกิดหลังติดตั้งครั้งแรก) ให้ปิดหน้าต่าง Termux หรือ ssh แล้วเปิดใหม่ 1 ครั้ง
+
+**ข้อควรระวัง**
+
+- ใช้ server ที่เดียว เมื่อย้ายมาใช้มือถือแล้วให้ปิด server บน Mac (`docker compose down`) ไม่อย่างนั้นข้อมูลจะแยกเป็นสองชุด
+- ไฟล์สำรองอัตโนมัติถูกก๊อปไว้ที่โฟลเดอร์ `Documents/banwaenraikhing-backups` ของมือถือด้วย (นอกแอป Termux)
+  ถ้าแอป Termux ถูกลบ ไฟล์ชุดนี้ยังอยู่ แต่ถ้ามือถือหายหรือเสีย จะหายไปด้วย
+  จึงควรก๊อปโฟลเดอร์นี้ไปเก็บที่อื่นเป็นประจำ (คอม, Google Drive) หรือดาวน์โหลด "ไฟล์ .db" ในหน้าเมนูไปเก็บ
+  (แอปอื่นที่ได้สิทธิ์อ่านไฟล์ในมือถืออ่านโฟลเดอร์นี้ได้ อย่าให้สิทธิ์แอปที่ไม่น่าไว้ใจ)
+- ถ้า Termux ถูกลบ: ลง Termux ใหม่แล้วติดตั้งตามขั้นตอนเดิม สคริปต์จะเจอไฟล์สำรองล่าสุดใน Documents แล้วถามว่าจะนำเข้าไหม ให้กด Enter
+- ถ้าระบบดับเองและขึ้น `[Process completed (signal 9)]` (Android 12 ขึ้นไปปิดโปรเซสเบื้องหลัง)
+  - Android 14 ขึ้นไป: ตั้งค่า → ตัวเลือกสำหรับนักพัฒนา → เปิด "Disable child process restrictions"
+  - Android 12L–13: ต่อสายกับคอมแล้วรัน `adb shell "settings put global settings_enable_monitor_phantom_procs false"`
+
 ## คำสั่งที่ใช้บ่อย
 
 | งาน | คำสั่ง |
@@ -115,6 +181,7 @@ npm start
 | `public/` | หน้าเว็บ (HTML, JavaScript, CSS, ไอคอน) |
 | `styles/input.css` | ต้นฉบับ CSS (Tailwind) |
 | `test/` | ชุดทดสอบ API (`npm test`) |
+| `termux/` | สคริปต์ติดตั้งและรันบนมือถือ Android (Termux) |
 | `data/` | ฐานข้อมูลและไฟล์สำรอง **ไม่ขึ้น git** |
 | `legacy-electron/` | เวอร์ชัน Electron เดิม เก็บไว้เผื่อต้องใช้ **ไม่ขึ้น git** |
 

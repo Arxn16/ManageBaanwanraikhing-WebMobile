@@ -6,7 +6,6 @@
 process.env.TZ = process.env.TZ || 'Asia/Bangkok'
 
 const fs = require('node:fs')
-const os = require('node:os')
 const path = require('node:path')
 const express = require('express')
 
@@ -15,6 +14,7 @@ const { createAuth } = require('./auth')
 const { createBackupManager } = require('./backup')
 const { buildCsv, buildExcelXml } = require('./export')
 const dates = require('./dates')
+const { lanAddresses } = require('./net')
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public')
 const VISIT_FIELDS = ['date', ...RX_FIELDS, ...ORDER_FIELDS]
@@ -74,19 +74,6 @@ function mergeText (existing, body, fields) {
 
 const mergeMoney = (existing, body, key) => (has(body, key) ? money(body[key]) : money(existing ? existing[key] : 0))
 
-function lanAddresses () {
-  const out = []
-  let ifaces = {}
-  // Android (Termux) บางรุ่นไม่ให้อ่านข้อมูล network ถ้าอ่านไม่ได้ให้ข้ามไป ระบบจะได้ไม่ดับ
-  try { ifaces = os.networkInterfaces() } catch (_) { return out }
-  for (const list of Object.values(ifaces)) {
-    for (const a of list || []) {
-      if (a.family === 'IPv4' && !a.internal) out.push(a.address)
-    }
-  }
-  return out
-}
-
 // ---------- แอป ----------
 
 function createApp (options = {}) {
@@ -101,6 +88,7 @@ function createApp (options = {}) {
     dataDir,
     keep: clamp(intParam(process.env.BACKUP_KEEP, 30), 1, 3650),
     intervalHours: clamp(intParam(process.env.BACKUP_INTERVAL_HOURS, 24), 1, 24 * 30),
+    copyDir: process.env.BACKUP_COPY_DIR || '',
     log
   })
 
@@ -491,11 +479,14 @@ if (require.main === module) {
     const inDocker = fs.existsSync('/.dockerenv')
     console.log('บ้านแว่นไร่ขิง พร้อมใช้งานแล้ว')
     console.log(`- ฐานข้อมูล: ${ctx.dbFile}`)
+    if (ctx.backups.copyDir) console.log(`- ก๊อปไฟล์สำรองไว้อีกที่: ${ctx.backups.copyDir}`)
     if (inDocker) {
       console.log(`- เปิดจากมือถือ: http://<IP ของเครื่องที่รัน Docker>:${port}`)
     } else {
       console.log(`- เครื่องนี้: http://localhost:${port}`)
-      for (const ip of lanAddresses()) console.log(`- มือถือ (Wi-Fi เดียวกัน): http://${ip}:${port}`)
+      const ips = lanAddresses()
+      for (const ip of ips) console.log(`- เครื่องอื่นในร้าน (Wi-Fi เดียวกัน): http://${ip}:${port}`)
+      if (!ips.length) console.log(`- เครื่องอื่นในร้าน: http://<IP ของเครื่องนี้>:${port} (ดู IP ได้ที่ตั้งค่า Wi-Fi)`)
     }
     if (ctx.auth.enabled) {
       console.log('- PIN: เปิดใช้งาน')
