@@ -167,12 +167,22 @@ step '6/6 ให้เปิดเองตอนเปิดเครื่อ�
 mkdir -p "$HOME/.termux/boot"
 cat > "$BOOT_FILE" <<BOOT
 #!$PREFIX/bin/sh
-# เปิดระบบบ้านแว่นไร่ขิงเองเมื่อเปิดเครื่อง (ใช้กับแอป Termux:Boot)
+# เปิดระบบบ้านแว่นไร่ขิงเองเมื่อเปิดเครื่อง (ใช้กับแอป Termux:Boot) ดูผลได้ที่ ~/boot.log
+export PREFIX="$PREFIX" HOME="$HOME"
+export PATH="$PREFIX/bin:\$PATH" SVDIR="$PREFIX/var/service" LOGDIR="$PREFIX/var/log"
+LOG="$HOME/boot.log"
+[ -f "\$LOG" ] && tail -n 200 "\$LOG" > "\$LOG.tmp" && mv "\$LOG.tmp" "\$LOG"
+echo "\$(date '+%Y-%m-%d %H:%M:%S') เปิดเครื่อง กำลังเริ่มระบบ" >> "\$LOG"
 termux-wake-lock
-. "$PREFIX/etc/profile.d/start-services.sh"
+service-daemon start >/dev/null 2>&1
+i=0
+until sv status $SERVICE >/dev/null 2>&1 || [ "\$i" -ge 30 ]; do sleep 2; i=\$((i + 1)); done
+sv up $SERVICE >/dev/null 2>&1
+[ -d "$PREFIX/var/service/sshd" ] && sv up sshd >/dev/null 2>&1
+echo "\$(date '+%Y-%m-%d %H:%M:%S') \$(sv status $SERVICE 2>&1)" >> "\$LOG"
 BOOT
 chmod 700 "$BOOT_FILE"
-ok 'พร้อมแล้ว ถ้าลงแอป Termux:Boot และเปิดแอปนั้น 1 ครั้ง'
+ok 'พร้อมแล้ว ถ้าลงแอป Termux:Boot และเปิดแอปนั้น 1 ครั้ง (ดูผลหลังเปิดเครื่องได้ที่ ~/boot.log)'
 
 IPS=$(node -e "console.log(require('./server/net').lanAddresses().join(' '))" 2>/dev/null || true)
 echo
