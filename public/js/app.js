@@ -187,7 +187,7 @@
   const convVal = (side, text) =>
     `<span><b class="rx-conv-eye ${side === 'R' ? 'text-green-700' : 'text-blue-700'}">${side}</b>${esc(text)}</span>`
 
-  // compact = หน้ารายละเอียด: สรุปสั้นๆ (ตัวเลขอยู่ในตารางด้านบนแล้ว) แบบที่ร้านพูดย้ายไปอยู่ในค่าแปลง
+  // compact = หน้ารายละเอียด: สรุปสั้นๆ (ตัวเลขอยู่ในตารางด้านบนแล้ว) "วัดสายตาได้" (สั้น 150 เอียง 50) ย้ายไปอยู่ในค่าแปลง
   function rxHelpHtml (a, { open = false, compact = false } = {}) {
     if (!a || a.empty) return ''
     const li = (icon, html, cls = '') =>
@@ -209,7 +209,7 @@
       lines.push(li('📈', `เทียบครั้งก่อน${when}<span class="rx-help-sub font-semibold text-gray-900"><span class="hidden sm:inline">: </span>${esc(a.change.text)}</span>`))
     }
     const rows = compact && (a.rSum.talk || a.lSum.talk)
-      ? [{ label: 'แบบที่ร้านพูด', r: a.rSum.talk || '–', l: a.lSum.talk || '–' }, ...a.rows]
+      ? [{ label: 'วัดสายตาได้', r: a.rSum.talk || '–', l: a.lSum.talk || '–' }, ...a.rows]
       : a.rows
     const conv = rows.length
       ? `
