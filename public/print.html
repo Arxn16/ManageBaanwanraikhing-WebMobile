@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>ใบค่าสายตา | บ้านแว่นไร่ขิง</title>
-  <meta name="theme-color" content="#02923f">
+  <meta name="theme-color" content="#15803d">
   <link rel="icon" type="image/png" href="/icons/icon-192.png">
   <style>
-    /* ใบค่าสายตา — พิมพ์ได้ทั้งกระดาษ A5 และใบเสร็จ 80 มม. (เลือกที่แถบด้านบน) */
+    /* พิมพ์ได้ 2 แบบ: ใบค่าสายตา (ไม่มีราคา) และใบรวม (มีราคา/ยอดชำระ)
+       ขนาดกระดาษ: A6, A5/A4, ใบเสร็จ 80 มม. และ 57/58 มม. (เลือกที่แถบด้านบน) */
     :root { --green: #02923f; --green-dark: #046b30; --line: #b9dcc6; --ink: #1f2933; --muted: #5f6b76; }
     * { box-sizing: border-box; }
     html { -webkit-text-size-adjust: 100%; }
@@ -35,69 +36,32 @@
     .sheet { background: #fff; margin: 0 auto; color: var(--ink); box-shadow: 0 6px 24px rgba(0,0,0,.12); }
     .lbl { color: var(--muted); }
     .empty { color: #b7c0c7; }
+    body[data-mode="rx"] .only-full, body[data-mode="full"] .only-rx { display: none !important; }
 
-    /* ---------- หัวใบ: โลโก้เล็กที่มุมซ้าย ชื่อเอกสารที่มุมขวา ---------- */
+    /* ---------- หัวใบ: โลโก้เล็กมุมซ้าย ชื่อเอกสารมุมขวา ---------- */
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 4mm; border-bottom: 0.8mm solid var(--green); }
     .brand { display: flex; align-items: center; gap: 2.5mm; min-width: 0; }
     .logo { height: auto; flex: none; }
-    .doc { flex: none; text-align: right; }
-    .doc h1 { margin: 0 0 1mm; color: var(--green-dark); letter-spacing: .02em; line-height: 1.2; }
-    .meta { line-height: 1.45; }
-
-    /* ---------- A5 ---------- */
-    body[data-paper="a5"] .sheet { width: 148mm; min-height: 210mm; padding: 8mm 9mm; font-size: 12.5pt; }
-    body[data-paper="a5"] .head { padding-bottom: 3mm; }
-    body[data-paper="a5"] .logo { width: 16mm; }
-    body[data-paper="a5"] .shop-name { font-size: 13pt; }
-    body[data-paper="a5"] .shop-en { font-size: 8.5pt; }
-    body[data-paper="a5"] .doc h1 { font-size: 16pt; }
-    body[data-paper="a5"] .meta { font-size: 10.5pt; }
-    body[data-paper="a5"] .customer { display: grid; grid-template-columns: 1fr auto; gap: 2mm 6mm; margin: 5mm 0 4mm; }
-    body[data-paper="a5"] .customer .wide { grid-column: 1 / -1; }
-    body[data-paper="a5"] .rx { font-size: 13pt; }
-    body[data-paper="a5"] .rx td, body[data-paper="a5"] .rx th { padding: 2.6mm 1mm; }
-    body[data-paper="a5"] .money { grid-template-columns: repeat(3, 1fr); }
-    body[data-paper="a5"] .foot { margin-top: 10mm; }
-
-    /* ---------- ใบเสร็จ 80 มม. ---------- */
-    body[data-paper="receipt"] .sheet { width: 76mm; padding: 2mm 2mm 3mm; font-size: 9.5pt; line-height: 1.35; }
-    body[data-paper="receipt"] .head { display: block; padding-bottom: 1.5mm; border-bottom-width: 0.5mm; }
-    body[data-paper="receipt"] .logo { width: 12mm; }
-    body[data-paper="receipt"] .brand { gap: 2mm; }
-    body[data-paper="receipt"] .shop-name { font-size: 11pt; }
-    body[data-paper="receipt"] .shop-en { font-size: 7.5pt; }
-    body[data-paper="receipt"] .doc { text-align: center; margin-top: 2mm; }
-    body[data-paper="receipt"] .doc h1 { font-size: 13pt; }
-    body[data-paper="receipt"] .meta { display: inline; font-size: 9pt; margin: 0 1.5mm; }
-    body[data-paper="receipt"] .customer { display: grid; grid-template-columns: 1fr auto; gap: 0.5mm 2mm; margin: 2.5mm 0 2mm; }
-    body[data-paper="receipt"] .customer .wide { grid-column: 1 / -1; }
-    body[data-paper="receipt"] .rx { font-size: 8.5pt; }
-    body[data-paper="receipt"] .rx td, body[data-paper="receipt"] .rx th { padding: 1.1mm 0.2mm; }
-    body[data-paper="receipt"] .rx .eye small { display: none; }
-    body[data-paper="receipt"] .order { margin-top: 2mm; gap: 0.6mm 2mm; }
-    body[data-paper="receipt"] .money { grid-template-columns: 1fr; gap: 0; margin-top: 2mm; border: 0.3mm solid var(--line); border-radius: 1.5mm; padding: 1mm 2mm; }
-    body[data-paper="receipt"] .money div { display: flex; justify-content: space-between; align-items: baseline; border: 0; padding: 0.4mm 0; text-align: left; }
-    body[data-paper="receipt"] .money span { display: inline; font-size: 1em; }
-    body[data-paper="receipt"] .foot { margin-top: 7mm; text-align: center; }
-    body[data-paper="receipt"] .sign { flex-direction: column; align-items: center; gap: 0.5mm; }
-    body[data-paper="receipt"] .sign .first { display: none; }
-    body[data-paper="receipt"] .sign .dots { min-width: 50mm; }
-    body[data-paper="receipt"] .thanks { margin-top: 2.5mm; font-size: .85em; }
-    body[data-paper="receipt"] .thanks .sep { display: block; height: 0; overflow: hidden; }
-
     .shop-name { font-weight: 800; color: var(--green-dark); line-height: 1.15; }
     .shop-en { color: var(--green); font-weight: 600; letter-spacing: .04em; }
     .shop-line { color: var(--muted); font-size: .88em; line-height: 1.35; }
+    .doc { flex: none; text-align: right; }
+    .doc h1 { margin: 0 0 1mm; color: var(--green-dark); letter-spacing: .02em; line-height: 1.2; }
+    .meta { line-height: 1.45; }
     .customer b { font-weight: 700; }
 
     .rx { width: 100%; border-collapse: collapse; text-align: center; table-layout: fixed; }
     .rx th, .rx td { border: 0.3mm solid var(--line); }
     .rx thead th { background: #e7f5ec; color: var(--green-dark); font-weight: 700; }
     .rx td { font-weight: 700; font-variant-numeric: tabular-nums; word-break: break-word; }
-    .rx .eye { width: 15%; font-weight: 800; line-height: 1.1; }
+    .rx .eye { font-weight: 800; line-height: 1.1; }
+    .rx-wide .eye { width: 15%; }
     .rx .eye small { display: block; font-weight: 500; font-size: .7em; color: var(--muted); }
     .rx .eye.r { color: var(--green-dark); }
     .rx .eye.l { color: #1d4ed8; }
+    .rx-tall { display: none; }
+    .rx-tall tbody th { background: #f3faf6; color: var(--green-dark); font-weight: 700; width: 34%; }
+    body[data-mode="rx"] .rx td { font-size: 1.08em; }
 
     .order { display: grid; grid-template-columns: max-content 1fr; gap: 1.5mm 3mm; margin-top: 4mm; }
     .order .val { white-space: pre-line; word-break: break-word; }
@@ -115,6 +79,79 @@
     .sign .dots { display: inline-block; min-width: 42mm; border-bottom: 0.3mm dotted #7b8792; height: 1.2em; }
     .thanks { margin-top: 4mm; text-align: center; font-size: .9em; }
 
+    /* ---------- A5 ---------- */
+    body[data-paper="a5"] .sheet { width: 148mm; min-height: 210mm; padding: 8mm 9mm; font-size: 12.5pt; }
+    body[data-paper="a5"] .head { padding-bottom: 3mm; }
+    body[data-paper="a5"] .logo { width: 16mm; }
+    body[data-paper="a5"] .shop-name { font-size: 13pt; }
+    body[data-paper="a5"] .shop-en { font-size: 8.5pt; }
+    body[data-paper="a5"] .doc h1 { font-size: 16pt; }
+    body[data-paper="a5"] .meta { font-size: 10.5pt; }
+    body[data-paper="a5"] .customer { display: grid; grid-template-columns: 1fr auto; gap: 2mm 6mm; margin: 5mm 0 4mm; }
+    body[data-paper="a5"] .customer .wide { grid-column: 1 / -1; }
+    body[data-paper="a5"] .rx { font-size: 13pt; }
+    body[data-paper="a5"] .rx td, body[data-paper="a5"] .rx th { padding: 2.6mm 1mm; }
+    body[data-paper="a5"] .money { grid-template-columns: repeat(3, 1fr); }
+    body[data-paper="a5"] .foot { margin-top: 10mm; }
+
+    /* ---------- A6 (การ์ด) ---------- */
+    body[data-paper="a6"] .sheet { width: 105mm; min-height: 148mm; padding: 6mm 6mm 5mm; font-size: 10pt; }
+    body[data-paper="a6"] .head { padding-bottom: 2mm; gap: 2mm; border-bottom-width: 0.6mm; }
+    body[data-paper="a6"] .brand { gap: 1.8mm; }
+    body[data-paper="a6"] .logo { width: 11mm; }
+    body[data-paper="a6"] .shop-name { font-size: 10.5pt; }
+    body[data-paper="a6"] .shop-en { font-size: 7pt; }
+    body[data-paper="a6"] .doc h1 { font-size: 12.5pt; }
+    body[data-paper="a6"] .meta { font-size: 8.5pt; }
+    body[data-paper="a6"] .customer { display: grid; grid-template-columns: 1fr auto; gap: 1mm 3mm; margin: 3.5mm 0 3mm; }
+    body[data-paper="a6"] .customer .wide { grid-column: 1 / -1; }
+    body[data-paper="a6"] .rx { font-size: 10.5pt; }
+    body[data-paper="a6"] .rx td, body[data-paper="a6"] .rx th { padding: 1.9mm 0.4mm; }
+    body[data-paper="a6"] .order { margin-top: 3mm; gap: 1mm 2.5mm; }
+    body[data-paper="a6"] .money { grid-template-columns: repeat(3, 1fr); gap: 1.5mm; margin-top: 3mm; }
+    body[data-paper="a6"] .money div { padding: 1.2mm; }
+    body[data-paper="a6"] .foot { margin-top: 7mm; }
+    body[data-paper="a6"] .sign .dots { min-width: 28mm; }
+    body[data-paper="a6"] .thanks { margin-top: 2.5mm; font-size: .85em; }
+
+    /* ---------- ใบเสร็จ 80 มม. และ 58 มม. ---------- */
+    body[data-paper="r80"] .sheet { width: 76mm; padding: 2mm 2mm 3mm; font-size: 9.5pt; }
+    body[data-paper="r58"] .sheet { width: 53mm; padding: 1.5mm 1mm 3mm; font-size: 8.5pt; }
+    body[data-paper^="r"] .sheet { line-height: 1.35; }
+    body[data-paper^="r"] .head { display: block; padding-bottom: 1.5mm; border-bottom-width: 0.5mm; }
+    body[data-paper^="r"] .brand { gap: 2mm; }
+    body[data-paper="r80"] .logo { width: 12mm; }
+    body[data-paper="r58"] .logo { width: 10mm; }
+    body[data-paper="r80"] .shop-name { font-size: 11pt; }
+    body[data-paper="r58"] .shop-name { font-size: 10pt; }
+    body[data-paper^="r"] .shop-en { font-size: 7pt; }
+    body[data-paper^="r"] .doc { text-align: center; margin-top: 2mm; }
+    body[data-paper="r80"] .doc h1 { font-size: 13pt; }
+    body[data-paper="r58"] .doc h1 { font-size: 11.5pt; }
+    body[data-paper^="r"] .meta { display: inline; margin: 0 1.5mm; }
+    body[data-paper="r58"] .meta { display: block; }
+    body[data-paper^="r"] .customer { display: grid; grid-template-columns: 1fr auto; gap: 0.5mm 2mm; margin: 2.5mm 0 2mm; }
+    body[data-paper^="r"] .customer .wide { grid-column: 1 / -1; }
+    body[data-paper="r80"] .rx { font-size: 8.5pt; }
+    body[data-paper^="r"] .rx td, body[data-paper^="r"] .rx th { padding: 1.1mm 0.2mm; }
+    body[data-paper^="r"] .rx .eye small { display: none; }
+    body[data-paper="r58"] .rx-wide { display: none; }
+    body[data-paper="r58"] .rx-tall { display: table; font-size: 9.5pt; }
+    body[data-paper="r58"] .rx-tall .eye small { display: inline; font-size: .75em; margin-left: .5mm; }
+    body[data-paper^="r"] .order { margin-top: 2mm; gap: 0.6mm 2mm; }
+    body[data-paper="r58"] .order { grid-template-columns: 1fr; gap: 0; }
+    body[data-paper="r58"] .order .val { margin-bottom: 1mm; }
+    body[data-paper^="r"] .money { grid-template-columns: 1fr; gap: 0; margin-top: 2mm; border: 0.3mm solid var(--line); border-radius: 1.5mm; padding: 1mm 2mm; }
+    body[data-paper^="r"] .money div { display: flex; justify-content: space-between; align-items: baseline; border: 0; padding: 0.4mm 0; text-align: left; }
+    body[data-paper^="r"] .money span { display: inline; font-size: 1em; }
+    body[data-paper^="r"] .foot { margin-top: 7mm; text-align: center; }
+    body[data-paper^="r"] .sign { flex-direction: column; align-items: center; gap: 0.5mm; }
+    body[data-paper^="r"] .sign .first { display: none; }
+    body[data-paper="r80"] .sign .dots { min-width: 50mm; }
+    body[data-paper="r58"] .sign .dots { min-width: 40mm; }
+    body[data-paper^="r"] .thanks { margin-top: 2.5mm; font-size: .85em; }
+    body[data-paper^="r"] .thanks .sep { display: block; height: 0; overflow: hidden; }
+
     @media print {
       body { background: #fff; }
       .toolbar, .status { display: none !important; }
@@ -122,25 +159,26 @@
       .sheet { box-shadow: none; margin: 0; min-height: 0 !important; }
     }
   </style>
-  <style id="page-size">@page { size: A5 portrait; margin: 0; }</style>
+  <style id="page-size">@page { size: 105mm 148mm; margin: 0; }</style>
 </head>
 
-<body data-paper="a5">
+<body data-paper="a6" data-mode="rx">
   <div class="toolbar">
     <button type="button" class="tb-btn" id="back">← กลับ</button>
     <span class="grow"></span>
-    <select id="paper" class="tb-select" aria-label="ขนาดกระดาษ">
-      <option value="a5">กระดาษ A5 / A4</option>
-      <option value="receipt">ใบเสร็จ 80 มม.</option>
+    <select id="doc-type" class="tb-select" aria-label="ชนิดใบ">
+      <option value="rx">ใบค่าสายตา</option>
+      <option value="full">ใบรวม (มีราคา)</option>
     </select>
-    <label class="tb-check"><input type="checkbox" id="show-price" checked> แสดงราคา</label>
+    <select id="paper" class="tb-select" aria-label="ขนาดกระดาษ"></select>
+    <label class="tb-check only-full"><input type="checkbox" id="show-price" checked> แสดงราคา</label>
     <button type="button" class="tb-btn tb-print" id="print">🖨️ พิมพ์</button>
   </div>
 
   <p class="status" id="status">กำลังโหลด...</p>
 
   <div class="stage" id="stage" hidden>
-    <div class="sheet">
+    <div class="sheet" id="sheet">
       <header class="head">
         <div class="brand">
           <img src="/icons/logo.png" class="logo" alt="บ้านแว่นไร่ขิง">
@@ -152,7 +190,7 @@
           </div>
         </div>
         <div class="doc">
-          <h1>ใบค่าสายตา</h1>
+          <h1 id="doc-title">ใบค่าสายตา</h1>
           <div class="meta"><span class="lbl">วันที่</span> <b id="date"></b></div>
           <div class="meta"><span class="lbl">เลขที่</span> <b id="no"></b></div>
         </div>
@@ -161,19 +199,25 @@
       <div class="customer">
         <div><span class="lbl">ชื่อ</span> <b id="c-name"></b></div>
         <div><span class="lbl">อายุ</span> <b id="c-age"></b></div>
-        <div class="wide"><span class="lbl">โทร</span> <b id="c-phone"></b></div>
+        <div class="wide only-full"><span class="lbl">โทร</span> <b id="c-phone"></b></div>
       </div>
 
-      <table class="rx">
+      <table class="rx rx-wide">
         <thead>
           <tr><th class="eye"></th><th>SPH</th><th>CYL</th><th>AX</th><th>VA</th><th>ADD</th><th>PD/SH</th></tr>
         </thead>
-        <tbody id="rx-body"></tbody>
+        <tbody id="rx-wide"></tbody>
+      </table>
+      <table class="rx rx-tall">
+        <thead>
+          <tr><th></th><th class="eye r">R<small>ขวา</small></th><th class="eye l">L<small>ซ้าย</small></th></tr>
+        </thead>
+        <tbody id="rx-tall"></tbody>
       </table>
 
       <div class="order" id="order"></div>
 
-      <div class="money" id="money">
+      <div class="money only-full" id="money">
         <div><span>ราคา</span> <b id="price"></b></div>
         <div><span>ชำระแล้ว</span> <b id="paid"></b></div>
         <div id="remain-box" class="due"><span>คงเหลือ</span> <b id="remain"></b></div>
@@ -194,16 +238,35 @@
       const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ESC[c])
       const num = v => { const n = Number(String(v ?? '').replace(/[,\s]/g, '')); return Number.isFinite(n) ? n : 0 }
       const money = v => num(v).toLocaleString('th-TH', { maximumFractionDigits: 2 })
-      const orEmpty = v => (String(v ?? '').trim() ? esc(v) : '<span class="empty">–</span>')
+      const filled = v => String(v ?? '').trim() !== ''
+      const orEmpty = v => (filled(v) ? esc(v) : '<span class="empty">–</span>')
       const store = {
         get (k, d) { try { return localStorage.getItem(k) ?? d } catch (_) { return d } },
         set (k, v) { try { localStorage.setItem(k, v) } catch (_) { /* ไม่เป็นไร */ } }
       }
 
-      function thaiDate (iso) {
+      const PAPERS = {
+        a6: { label: 'การ์ด A6', page: '105mm 148mm' },
+        a5: { label: 'กระดาษ A5 / A4', page: 'A5 portrait' },
+        r80: { label: 'ใบเสร็จ 80 มม.', width: 80 },
+        r58: { label: 'ใบเสร็จ 57/58 มม.', width: 57 }
+      }
+      const MODES = {
+        rx: { title: 'ใบค่าสายตา', papers: ['a6', 'a5', 'r80', 'r58'] },
+        full: { title: 'ใบค่าสายตา / ใบรับเงิน', papers: ['a5', 'a6', 'r80', 'r58'] }
+      }
+      const COLS = [['sph', 'SPH'], ['cyl', 'CYL'], ['ax', 'AX'], ['va', 'VA'], ['add', 'ADD'], ['pd', 'PD/SH']]
+
+      let data = null
+      let mode = new URLSearchParams(location.search).get('type') === 'full' ? 'full' : 'rx'
+
+      function parseISO (iso) {
         const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''))
-        if (!m) return iso || '-'
-        return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })
+        return m ? [+m[1], +m[2], +m[3]] : null
+      }
+      function thaiDate (iso) {
+        const p = parseISO(iso)
+        return p ? new Date(p[0], p[1] - 1, p[2]).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : (iso || '-')
       }
 
       async function get (url) {
@@ -212,46 +275,53 @@
           location.href = '/login.html?next=' + encodeURIComponent(location.pathname + location.search)
           throw new Error('กรุณาเข้าสู่ระบบ')
         }
-        let data = null
-        try { data = await res.json() } catch (_) { /* ไม่ใช่ JSON */ }
-        if (!res.ok) throw new Error((data && data.error) || 'โหลดข้อมูลไม่ได้')
-        return data
+        let body = null
+        try { body = await res.json() } catch (_) { /* ไม่ใช่ JSON */ }
+        if (!res.ok) throw new Error((body && body.error) || 'โหลดข้อมูลไม่ได้')
+        return body
       }
 
-      // ขนาดกระดาษและการแสดงราคา (จำไว้ในเครื่องนี้)
-      function applyPaper (paper) {
-        document.body.dataset.paper = paper
-        $('page-size').textContent = paper === 'receipt'
-          ? '@page { size: 80mm 180mm; margin: 2mm; }'
-          : '@page { size: A5 portrait; margin: 0; }'
-        $('paper').value = paper
-        store.set('bw-print-paper', paper)
+      // ใบเสร็จ: ให้ความยาวกระดาษพอดีกับเนื้อหา จะได้ไม่เปลืองกระดาษ
+      function updatePageSize () {
+        const paper = PAPERS[document.body.dataset.paper]
+        if (paper.page) {
+          $('page-size').textContent = `@page { size: ${paper.page}; margin: 0; }`
+          return
+        }
+        const mm = Math.ceil($('sheet').getBoundingClientRect().height / (96 / 25.4)) + 4
+        $('page-size').textContent = `@page { size: ${paper.width}mm ${Math.max(mm, 60)}mm; margin: 0; }`
       }
+
+      function applyPaper (paper) {
+        const allowed = MODES[mode].papers
+        if (!allowed.includes(paper)) paper = allowed[0]
+        document.body.dataset.paper = paper
+        $('paper').innerHTML = allowed.map(k => `<option value="${k}">${PAPERS[k].label}</option>`).join('')
+        $('paper').value = paper
+        store.set(`bw-print-paper-${mode}`, paper)
+        if (data) updatePageSize()
+      }
+
       function applyPrice (on) {
         document.body.classList.toggle('hide-price', !on)
         $('show-price').checked = on
         store.set('bw-print-price', on ? '1' : '0')
+        if (data) updatePageSize()
       }
-      applyPaper(store.get('bw-print-paper', 'a5') === 'receipt' ? 'receipt' : 'a5')
-      applyPrice(store.get('bw-print-price', '1') !== '0')
-      $('paper').addEventListener('change', e => applyPaper(e.target.value))
-      $('show-price').addEventListener('change', e => applyPrice(e.target.checked))
-      $('print').addEventListener('click', () => window.print())
-      $('back').addEventListener('click', () => {
-        if (history.length > 1) history.back()
-        else location.href = '/customer-list.html'
-      })
 
-      async function load () {
-        const id = Number(new URLSearchParams(location.search).get('visit'))
-        if (!Number.isInteger(id) || id <= 0) throw new Error('ไม่พบรายการที่จะพิมพ์')
-        const [data, shop] = await Promise.all([
-          get(`/api/customers/${id}/visits`),
-          fetch('/shop.json').then(r => (r.ok ? r.json() : {})).catch(() => ({}))
-        ])
-        const c = data.customer
-        const v = data.visits.find(x => x.id === id) || data.visits[data.visits.length - 1]
+      function applyMode (m) {
+        mode = m
+        document.body.dataset.mode = m
+        $('doc-type').value = m
+        const url = new URL(location.href)
+        url.searchParams.set('type', m)
+        history.replaceState(null, '', url)
+        applyPaper(store.get(`bw-print-paper-${m}`, MODES[m].papers[0]))
+        if (data) render()
+      }
 
+      function render () {
+        const { c, v, shop } = data
         if (shop.name) $('shop-name').textContent = shop.name
         if (shop.nameEn !== undefined) $('shop-en').textContent = shop.nameEn
         if (shop.address) { $('shop-address').textContent = shop.address; $('shop-address').hidden = false }
@@ -259,21 +329,24 @@
         if (contact) { $('shop-contact').textContent = contact; $('shop-contact').hidden = false }
         $('thanks').innerHTML = String(shop.footer ?? 'ขอบคุณที่ใช้บริการ').split(' · ').map(esc).join('<span class="sep"> · </span>')
 
+        $('doc-title').textContent = MODES[mode].title
         $('date').textContent = thaiDate(v.date)
         $('no').textContent = String(v.id)
         $('c-name').textContent = c.name || '-'
         $('c-age').textContent = c.age ? `${c.age} ปี` : '-'
         $('c-phone').textContent = c.phone || '-'
 
-        const cols = ['sph', 'cyl', 'ax', 'va', 'add', 'pd']
-        const eye = (side, label, th) => `<tr><th class="eye ${side}">${label}<small>${th}</small></th>${cols.map(k => `<td>${orEmpty(v[`${side}_${k}`])}</td>`).join('')}</tr>`
-        $('rx-body').innerHTML = eye('r', 'R', 'ตาขวา') + eye('l', 'L', 'ตาซ้าย')
+        const eye = (side, label, th) => `<tr><th class="eye ${side}">${label}<small>${th}</small></th>${COLS.map(([k]) => `<td>${orEmpty(v[`${side}_${k}`])}</td>`).join('')}</tr>`
+        $('rx-wide').innerHTML = eye('r', 'R', 'ตาขวา') + eye('l', 'L', 'ตาซ้าย')
+        $('rx-tall').innerHTML = COLS.map(([k, t]) => `<tr><th>${t}</th><td>${orEmpty(v[`r_${k}`])}</td><td>${orEmpty(v[`l_${k}`])}</td></tr>`).join('')
 
-        const rows = [['กรอบแว่น', v.frame], ['เลนส์', v.lens], ['หมายเหตุ', v.detail]]
-          .filter(([, x]) => String(x ?? '').trim())
+        const rows = mode === 'rx'
+          ? [['หมายเหตุ', v.detail]]
+          : [['กรอบแว่น', v.frame], ['เลนส์', v.lens], ['หมายเหตุ', v.detail]]
+        const html = rows.filter(([, x]) => filled(x))
           .map(([label, x]) => `<span class="lbl">${label}</span><span class="val">${esc(x)}</span>`)
-        $('order').innerHTML = rows.join('')
-        $('order').hidden = rows.length === 0
+        $('order').innerHTML = html.join('')
+        $('order').hidden = html.length === 0
 
         const remain = num(v.price) - num(v.deposit)
         $('price').textContent = `${money(v.price)} บาท`
@@ -281,10 +354,37 @@
         $('remain').textContent = remain > 0 ? `${money(remain)} บาท` : 'ชำระครบ'
         $('remain-box').className = remain > 0 ? 'due' : 'paid-all'
 
-        document.title = `ใบค่าสายตา ${c.name || ''} ${v.date || ''}`.trim()
+        document.title = `${MODES[mode].title} ${c.name || ''} ${v.date || ''}`.trim()
         $('status').hidden = true
         $('stage').hidden = false
+        updatePageSize()
       }
+
+      async function load () {
+        const id = Number(new URLSearchParams(location.search).get('visit'))
+        if (!Number.isInteger(id) || id <= 0) throw new Error('ไม่พบรายการที่จะพิมพ์')
+        const [res, shop] = await Promise.all([
+          get(`/api/customers/${id}/visits`),
+          fetch('/shop.json').then(r => (r.ok ? r.json() : {})).catch(() => ({}))
+        ])
+        const v = res.visits.find(x => x.id === id) || res.visits[res.visits.length - 1]
+        data = { c: res.customer, v, shop }
+        render()
+      }
+
+      const oldPaper = store.get('bw-print-paper', '')
+      if (oldPaper === 'receipt') store.set('bw-print-paper-full', 'r80')
+      applyPrice(store.get('bw-print-price', '1') !== '0')
+      applyMode(mode)
+      $('doc-type').addEventListener('change', e => applyMode(e.target.value))
+      $('paper').addEventListener('change', e => applyPaper(e.target.value))
+      $('show-price').addEventListener('change', e => applyPrice(e.target.checked))
+      $('print').addEventListener('click', () => { updatePageSize(); window.print() })
+      window.addEventListener('beforeprint', updatePageSize)
+      $('back').addEventListener('click', () => {
+        if (history.length > 1) history.back()
+        else location.href = '/customer-list.html'
+      })
 
       load().catch(err => {
         $('status').textContent = err.message

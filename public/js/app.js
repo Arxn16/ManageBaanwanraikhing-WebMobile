@@ -147,12 +147,15 @@
         </div>
         ${eye('R', 'ตาขวา', 'bg-green-700')}
         ${eye('L', 'ตาซ้าย', 'bg-blue-700')}
+        <div id="${prefix}rx-help"></div>
       </div>`
   }
 
   function mountRxEditor (containerId, prefix = '') {
     const el = $(containerId)
-    if (el) el.innerHTML = rxEditorHtml(prefix)
+    if (!el) return
+    el.innerHTML = rxEditorHtml(prefix)
+    bindRxHelp(el, prefix)
   }
 
   function readFields (fields, prefix = '') {
@@ -178,10 +181,86 @@
     el.dataset.tone = tone
   }
 
+  // ---------- ช่วยดูค่าสายตา: สรุปคร่าวๆ ตามเกณฑ์ + แปลงค่า (ไม่บันทึก ไม่พิมพ์ ใช้ดูในร้าน) ----------
+  // ตัวคำนวณอยู่ใน /js/rx-tools.js (window.RxTools) ถ้าไม่ได้โหลดไว้ก็แค่ไม่แสดงแผงนี้
+
+  const convVal = (side, text) =>
+    `<span><b class="rx-conv-eye ${side === 'R' ? 'text-green-700' : 'text-blue-700'}">${side}</b>${esc(text)}</span>`
+
+  // compact = หน้ารายละเอียด: สรุปสั้นๆ (ตัวเลขอยู่ในตารางด้านบนแล้ว) แบบที่ร้านพูดย้ายไปอยู่ในค่าแปลง
+  function rxHelpHtml (a, { open = false, compact = false } = {}) {
+    if (!a || a.empty) return ''
+    const li = (icon, html, cls = '') =>
+      `<li class="rx-help-line ${cls}"><span class="rx-help-icon">${icon}</span><span class="min-w-0">${html}</span></li>`
+    const eyeLine = (side, sum) => {
+      const badge = `<b class="${side === 'R' ? 'text-green-700' : 'text-blue-700'}">${side}</b>`
+      if (sum.state === 'empty') return li(badge, 'ไม่ได้กรอก', 'text-gray-400')
+      if (sum.state === 'bad') return li(badge, esc(sum.desc), 'text-amber-700')
+      if (compact) return li(badge, esc(sum.desc.replace(/^สายตา/, ''))) // ให้พอดีบรรทัดเดียวบนมือถือ
+      return li(badge, `<b>${esc(sum.talk)}</b><span class="rx-help-sub"><span class="hidden sm:inline"> — </span>${esc(sum.desc)}</span>`)
+    }
+    const lines = []
+    if (a.rSum.state !== 'empty' || a.lSum.state !== 'empty') lines.push(eyeLine('R', a.rSum), eyeLine('L', a.lSum))
+    if (a.add) lines.push(li('📖', esc(a.add)))
+    if (a.nearHint) lines.push(li('💡', esc(a.nearHint), 'text-gray-600'))
+    if (a.aniso) lines.push(li(a.aniso.warn ? '⚠️' : 'ℹ️', esc(a.aniso.text), a.aniso.warn ? 'font-semibold text-amber-800' : ''))
+    if (a.change) {
+      const when = a.change.date ? ` (${esc(a.change.date)})` : ''
+      lines.push(li('📈', `เทียบครั้งก่อน${when}<span class="rx-help-sub font-semibold text-gray-900"><span class="hidden sm:inline">: </span>${esc(a.change.text)}</span>`))
+    }
+    const rows = compact && (a.rSum.talk || a.lSum.talk)
+      ? [{ label: 'แบบที่ร้านพูด', r: a.rSum.talk || '–', l: a.lSum.talk || '–' }, ...a.rows]
+      : a.rows
+    const conv = rows.length
+      ? `
+        <details class="rx-help-more"${open ? ' open' : ''}>
+          <summary>🔄 ค่าแปลง</summary>
+          <div class="rx-conv-row rx-conv-head"><span></span><b class="text-green-700">R ตาขวา</b><b class="text-blue-700">L ตาซ้าย</b></div>
+          ${rows.map(x => `<div class="rx-conv-row"><span class="rx-conv-label">${esc(x.label)}</span>${convVal('R', x.r)}${convVal('L', x.l)}</div>`).join('')}
+          <p class="rx-help-foot">ปัดทีละ 0.25 · คอนแทคเลนส์คิดที่ระยะห่างตา 12 มม. ต้องลองใส่จริงก่อนสั่ง${a.toric ? '<br>* เอียงตั้งแต่ 100 ควรใช้คอนแทคเลนส์สายตาเอียง (toric)' : ''}</p>
+        </details>`
+      : ''
+    return `
+      <div class="rx-help">
+        <div class="rx-help-head"><span class="rx-help-title">👓 ช่วยดู</span><span class="rx-help-note">ประเมินคร่าวๆ · ไม่บันทึก · ไม่พิมพ์</span></div>
+        ${lines.length ? `<ul class="rx-help-list${compact ? ' text-[15px]' : ''}">${lines.join('')}</ul>` : ''}
+        ${conv}
+      </div>`
+  }
+
+  const rxAssess = (v, prev, age) => (window.RxTools ? window.RxTools.assess(v, prev, { age }) : null)
+
+  // ครั้งก่อนหน้า (ไว้เทียบ): หน้าต่างแก้ไข = ครั้งก่อนครั้งที่แก้, หน้าบันทึกครั้งใหม่ = ครั้งล่าสุด
+  function rxPrev (prefix) {
+    if (prefix === 'ev-') {
+      const i = editingVisit ? detailVisits.findIndex(v => v.id === editingVisit.id) : -1
+      return i > 0 ? detailVisits[i - 1] : null
+    }
+    return edit.newVisit && edit.visits.length ? edit.visits[edit.visits.length - 1] : null
+  }
+
+  function updateRxHelp (prefix = '') {
+    const slot = $(`${prefix}rx-help`)
+    if (!slot) return
+    const open = !!slot.querySelector('details[open]') // พิมพ์ต่อแล้วค่าแปลงที่เปิดไว้ไม่ปิดเอง
+    const age = prefix === 'ev-' ? (editingVisit && editingVisit.age) || detailAge : val('age')
+    slot.innerHTML = rxHelpHtml(rxAssess(readFields(RX_FIELDS, prefix), rxPrev(prefix), age), { open })
+  }
+
+  function bindRxHelp (root, prefix = '') {
+    const box = root && root.querySelector('.rx-box')
+    if (!box || box.dataset.help) return
+    box.dataset.help = '1'
+    box.addEventListener('input', debounce(() => updateRxHelp(prefix), 200))
+    if (!prefix && $('age')) $('age').addEventListener('input', debounce(() => updateRxHelp(), 300)) // อายุมีผลกับคำแนะนำ
+  }
+
   // ---------- หน้าต่างรายละเอียดลูกค้า (ใช้ร่วมกันหลายหน้า) ----------
 
   let afterDataChange = () => {}
   let detailCustomerId = null
+  let detailVisits = []
+  let detailAge = ''
   let editingVisit = null
 
   function openModal (modal) {
@@ -227,7 +306,10 @@
 
   const orDash = v => esc(v) || '<span class="text-gray-400">-</span>'
 
-  function renderVisit (v, index) {
+  // ปุ่มพิมพ์ 2 แบบ: ชื่อ + บรรทัดเล็กบอกว่ามีราคาไหม (จอมือถือแคบ ข้อความยาวจะตัดบรรทัดไม่สวย)
+  const printBtn = 'btn flex-col gap-0 bg-white px-2 py-2 leading-tight text-green-800 ring-2 ring-green-600 hover:bg-green-50'
+
+  function renderVisit (v, index, all = []) {
     const cell = x => `<td class="border border-green-100 px-0.5 py-2.5 text-center font-semibold sm:px-2">${esc(x)}</td>`
     const eyeRow = side => `
       <tr>
@@ -242,10 +324,7 @@
             <p class="text-xl font-bold text-gray-900">ครั้งที่ ${index + 1}</p>
             <p class="text-base text-gray-600">📅 ${esc(v.date) || '-'}</p>
           </div>
-          <div class="flex flex-wrap justify-end gap-2">
-            <a href="/print.html?visit=${v.id}" class="btn bg-white px-4 py-2.5 text-green-800 ring-2 ring-green-600 hover:bg-green-50">🖨️ พิมพ์</a>
-            <button type="button" onclick="editVisitRecord(${v.id})" class="btn bg-amber-400 px-4 py-2.5 text-gray-900 hover:bg-amber-500">✏️ แก้ไข</button>
-          </div>
+          <button type="button" onclick="editVisitRecord(${v.id})" class="btn bg-amber-400 px-4 py-2.5 text-gray-900 hover:bg-amber-500">✏️ แก้ไข</button>
         </div>
         <div class="overflow-x-auto rounded-xl ring-1 ring-green-200">
           <table class="min-w-full border-collapse text-sm text-gray-900 sm:text-base">
@@ -258,6 +337,7 @@
             <tbody>${eyeRow('r')}${eyeRow('l')}</tbody>
           </table>
         </div>
+        ${rxHelpHtml(rxAssess(v, index > 0 ? all[index - 1] : null, v.age || detailAge), { compact: true })}
         <div class="info-grid mt-4">
           ${infoItem('แว่นเก่า', orDash(v.old_glasses), 'col-span-2')}
           ${infoItem('รายละเอียดเพิ่มเติม (Re)', `<span class="whitespace-pre-line">${orDash(v.detail)}</span>`, 'col-span-2')}
@@ -270,6 +350,10 @@
           ${infoItem('คงเหลือ', `<span class="text-xl font-bold ${remain > 0 ? 'text-red-700' : 'text-green-700'}">${money(remain)}</span>`)}
         </div>
         ${remain > 0 ? `<button type="button" onclick="openPayment(${v.id})" class="btn mt-3 w-full bg-red-600 text-lg hover:bg-red-700">💵 รับชำระ ${baht(remain)}</button>` : ''}
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <a href="/print.html?visit=${v.id}&type=rx" class="${printBtn}"><span>🖨️ ใบค่าสายตา</span><span class="text-sm font-normal text-gray-600">ไม่มีราคา</span></a>
+          <a href="/print.html?visit=${v.id}&type=full" class="${printBtn}"><span>🧾 ใบรวม</span><span class="text-sm font-normal text-gray-600">มีราคา</span></a>
+        </div>
       </div>`
   }
 
@@ -277,6 +361,8 @@
     const { customer: c, visits } = await api.get(`/api/customers/${id}/visits`)
     const modal = ensureDetailModal()
     detailCustomerId = c.id
+    detailVisits = visits
+    detailAge = c.age
     const totalRemain = visits.reduce((s, v) => s + num(v.remain), 0)
     const disease = c.disease
       ? `<span class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-base font-bold text-amber-900 ring-1 ring-amber-300">⚠️ ${esc(c.disease)}</span>`
@@ -355,6 +441,7 @@
       </div>`
     modal.addEventListener('click', e => { if (e.target === modal) closeEditVisitModal() })
     document.body.appendChild(modal)
+    bindRxHelp(modal, 'ev-')
     return modal
   }
 
@@ -368,6 +455,7 @@
     setVal('ev-deposit', visit.deposit ?? 0)
     calculateRemain('ev-')
     fillFields([...RX_FIELDS, ...ORDER_FIELDS], visit, 'ev-')
+    updateRxHelp('ev-')
     show('ev-delete', visit.parent_id !== null)
     openModal(modal)
   }
@@ -685,6 +773,7 @@
     setVal('deposit', '')
     setVal('date', isoDate())
     calculateRemain()
+    updateRxHelp()
   }
 
   async function saveCustomer () {
@@ -747,6 +836,7 @@
     show('edit-actions', !edit.newVisit)
     show('copy-last-rx', edit.newVisit && visits.length > 0)
     if (edit.newVisit) setVal('date', isoDate())
+    updateRxHelp()
     const link = $('new-visit-link')
     if (link) link.href = `/edit-customer.html?id=${edit.id}&new=1`
   }
@@ -759,6 +849,7 @@
     const last = edit.visits[edit.visits.length - 1]
     if (!last) return
     fillFields(RX_FIELDS, last)
+    updateRxHelp()
     toast(`คัดลอกค่าสายตาจากวันที่ ${last.date || '-'} แล้ว`)
   }
 

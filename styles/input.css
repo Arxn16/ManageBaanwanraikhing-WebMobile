@@ -52,7 +52,6 @@
   }
 
   /* ---------- ค่าสายตา R / L ---------- */
-  /* ---------- ค่าสายตา R / L ---------- */
   .rx-box {
     @apply rounded-3xl bg-white p-4 shadow ring-1 ring-green-200 sm:p-6;
   }
@@ -79,6 +78,68 @@
 
   .rx-field input {
     @apply mt-1 w-full rounded-xl border-2 border-green-300 bg-white px-1 py-3 text-center text-lg font-semibold text-gray-900 transition focus:border-green-600 focus:outline-none focus:ring-4 focus:ring-green-200;
+  }
+
+  /* ---------- ช่วยดูค่าสายตา (ประเมินคร่าวๆ + ค่าแปลง ไม่บันทึก ไม่พิมพ์) ---------- */
+  .rx-help {
+    @apply mt-3 rounded-2xl border-2 border-dashed border-green-300 bg-white p-3 text-base text-gray-800 sm:p-4;
+  }
+
+  .rx-help-head {
+    @apply mb-2 flex flex-wrap items-baseline justify-between gap-x-3;
+  }
+
+  .rx-help-title {
+    @apply text-lg font-bold text-green-900;
+  }
+
+  .rx-help-note {
+    @apply text-sm text-gray-500;
+  }
+
+  .rx-help-list {
+    @apply space-y-1.5 leading-snug;
+  }
+
+  .rx-help-line {
+    @apply flex gap-2;
+  }
+
+  .rx-help-icon {
+    @apply w-6 shrink-0 text-center;
+  }
+
+  .rx-help-sub {
+    @apply block text-gray-600 sm:inline;
+  }
+
+  .rx-help-more {
+    @apply mt-3 overflow-hidden rounded-xl bg-green-50 ring-1 ring-green-100;
+  }
+
+  .rx-help-more > summary {
+    @apply cursor-pointer select-none px-3 py-2.5 font-semibold text-green-800;
+  }
+
+  /* มือถือ: หัวข้อ แล้วเรียง R / L ลงมา · จอใหญ่: ตาราง หัวข้อ | R | L */
+  .rx-conv-row {
+    @apply grid grid-cols-1 gap-y-0.5 border-t border-green-100 px-3 py-2 font-semibold tabular-nums text-gray-900 sm:grid-cols-[11rem_1fr_1fr] sm:gap-x-3;
+  }
+
+  .rx-conv-head {
+    @apply hidden border-t-0 pt-0 sm:grid;
+  }
+
+  .rx-conv-label {
+    @apply text-sm font-medium text-gray-600 sm:text-base;
+  }
+
+  .rx-conv-eye {
+    @apply mr-2 inline-block w-4 sm:hidden;
+  }
+
+  .rx-help-foot {
+    @apply border-t border-green-100 px-3 py-2 text-sm text-gray-500;
   }
 
   /* ---------- หน้าเพิ่ม / แก้ไขลูกค้า: โทนเขียว ตัวใหญ่ อ่านง่าย ---------- */
