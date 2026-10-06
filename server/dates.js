@@ -33,9 +33,16 @@ function ranges (now = new Date()) {
   }
 }
 
+// วันที่ที่พิมพ์เป็นปี พ.ศ. (เช่น 2569-03-02) แปลงเป็น ค.ศ. (2026-03-02) ไม่อย่างนั้นยอดขายรายปีจะไม่นับ
+function normalizeDate (s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s ?? '').trim())
+  if (!m || Number(m[1]) <= 2400) return s
+  return `${Number(m[1]) - 543}-${m[2]}-${m[3]}`
+}
+
 // ใช้ตั้งชื่อไฟล์ เช่น 2026-09-24_153000
 function stamp (d = new Date()) {
   return `${toISODate(d)}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
 }
 
-module.exports = { toISODate, isISODate, ranges, stamp }
+module.exports = { toISODate, isISODate, ranges, stamp, normalizeDate }

@@ -82,6 +82,15 @@ function openDatabase (file) {
   return db
 }
 
+// แก้วันที่ที่บันทึกไว้เป็นปี พ.ศ. ให้เป็น ค.ศ. (ยอดขายรายปีและ "ลูกค้าล่าสุด" จะได้ถูกต้อง) คืนจำนวนรายการที่แก้
+function fixBuddhistYears (db) {
+  const r = db.prepare(`
+    UPDATE customers
+    SET date = printf('%04d', CAST(substr(date, 1, 4) AS INTEGER) - 543) || substr(date, 5)
+    WHERE date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND CAST(substr(date, 1, 4) AS INTEGER) > 2400`).run()
+  return Number(r.changes)
+}
+
 // รันหลายคำสั่งเป็นชุดเดียว ถ้าพังกลางทางจะย้อนกลับทั้งหมด
 function transaction (db, fn) {
   db.exec('BEGIN IMMEDIATE')
@@ -97,6 +106,7 @@ function transaction (db, fn) {
 
 module.exports = {
   openDatabase,
+  fixBuddhistYears,
   transaction,
   PERSONAL_FIELDS,
   RX_FIELDS,

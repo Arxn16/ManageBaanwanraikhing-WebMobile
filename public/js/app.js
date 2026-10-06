@@ -27,7 +27,7 @@
     let t
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms) }
   }
-  const telLink = (phone, cls = 'text-pink-700 underline decoration-pink-200 underline-offset-2') => phone
+  const telLink = (phone, cls = 'text-green-800 underline decoration-green-300 underline-offset-2') => phone
     ? `<a href="tel:${esc(String(phone).replace(/[^\d+]/g, ''))}" class="${cls}">${esc(phone)}</a>`
     : '-'
 
@@ -242,7 +242,10 @@
             <p class="text-xl font-bold text-gray-900">ครั้งที่ ${index + 1}</p>
             <p class="text-base text-gray-600">📅 ${esc(v.date) || '-'}</p>
           </div>
-          <button type="button" onclick="editVisitRecord(${v.id})" class="btn bg-green-700 px-4 py-2.5 hover:bg-green-800">✏️ แก้ไข</button>
+          <div class="flex flex-wrap justify-end gap-2">
+            <a href="/print.html?visit=${v.id}" class="btn bg-white px-4 py-2.5 text-green-800 ring-2 ring-green-600 hover:bg-green-50">🖨️ พิมพ์</a>
+            <button type="button" onclick="editVisitRecord(${v.id})" class="btn bg-amber-400 px-4 py-2.5 text-gray-900 hover:bg-amber-500">✏️ แก้ไข</button>
+          </div>
         </div>
         <div class="overflow-x-auto rounded-xl ring-1 ring-green-200">
           <table class="min-w-full border-collapse text-sm text-gray-900 sm:text-base">
@@ -263,9 +266,10 @@
         </div>
         <div class="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-green-50 p-3 text-center ring-1 ring-green-100">
           ${infoItem('ราคา', money(v.price))}
-          ${infoItem('มัดจำ', money(v.deposit))}
+          ${infoItem('ชำระแล้ว', money(v.deposit))}
           ${infoItem('คงเหลือ', `<span class="text-xl font-bold ${remain > 0 ? 'text-red-700' : 'text-green-700'}">${money(remain)}</span>`)}
         </div>
+        ${remain > 0 ? `<button type="button" onclick="openPayment(${v.id})" class="btn mt-3 w-full bg-red-600 text-lg hover:bg-red-700">💵 รับชำระ ${baht(remain)}</button>` : ''}
       </div>`
   }
 
@@ -298,8 +302,8 @@
             ${infoItem('ที่อยู่', orDash(c.address), 'col-span-2')}
           </div>
           <div class="mt-5 flex flex-wrap gap-2">
-            <a href="/edit-customer.html?id=${c.id}" class="btn bg-green-700 hover:bg-green-800">✏️ แก้ไขข้อมูลลูกค้า</a>
-            <a href="/edit-customer.html?id=${c.id}&new=1" class="btn bg-blue-700 hover:bg-blue-800">➕ เพิ่มการมาครั้งใหม่</a>
+            <a href="/edit-customer.html?id=${c.id}" class="btn bg-amber-400 text-gray-900 hover:bg-amber-500">✏️ แก้ไขข้อมูลลูกค้า</a>
+            <a href="/edit-customer.html?id=${c.id}&new=1" class="btn bg-green-700 hover:bg-green-800">➕ เพิ่มการมาครั้งใหม่</a>
           </div>
         </div>
         <div>
@@ -406,6 +410,155 @@
     return true
   }
 
+  // ---------- รับชำระ ----------
+  // ยอดที่ชำระแล้วเก็บในช่อง "มัดจำ" (deposit) รับเงินเพิ่มเมื่อไหร่ ยอดคงเหลือลดลงตาม
+
+  let payingVisit = null
+
+  function ensurePayModal () {
+    let modal = $('pay-modal')
+    if (modal) return modal
+    modal = document.createElement('div')
+    modal.id = 'pay-modal'
+    modal.dataset.modal = ''
+    modal.className = 'fixed inset-0 z-[55] hidden flex items-end justify-center bg-black/50 sm:items-center sm:p-4'
+    modal.innerHTML = `
+      <form id="pay-form" class="big-fields w-full rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-6">
+        <h2 class="text-2xl font-bold text-green-900">💵 รับชำระ</h2>
+        <p id="pay-who" class="mt-1 break-words text-lg text-gray-700"></p>
+        <div class="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-green-50 p-3 text-center ring-1 ring-green-100">
+          ${infoItem('ราคา', '<span id="pay-price"></span>')}
+          ${infoItem('ชำระแล้ว', '<span id="pay-paid"></span>')}
+          ${infoItem('ค้าง', '<span id="pay-due" class="font-bold text-red-700"></span>')}
+        </div>
+        <label class="field mt-4">จำนวนเงินที่รับ (บาท)
+          <input id="pay-amount" inputmode="decimal" autocomplete="off" required>
+        </label>
+        <p class="mt-1 text-sm text-gray-500">รับครบให้ใส่เท่ายอดค้าง ถ้ารับบางส่วนแก้ตัวเลขได้</p>
+        <div class="mt-5 grid grid-cols-2 gap-2">
+          <button type="button" data-close class="btn-light py-3 text-lg">ยกเลิก</button>
+          <button type="submit" class="btn bg-green-700 text-lg hover:bg-green-800">ยืนยันรับเงิน</button>
+        </div>
+      </form>`
+    modal.addEventListener('click', e => {
+      if (e.target === modal || e.target.closest('[data-close]')) closePayment()
+    })
+    modal.querySelector('#pay-form').addEventListener('submit', e => {
+      e.preventDefault()
+      action(confirmPayment)(e.submitter)
+    })
+    document.body.appendChild(modal)
+    return modal
+  }
+
+  async function openPayment (visitId) {
+    const { visit } = await api.get(`/api/visits/${visitId}`)
+    const due = num(visit.price) - num(visit.deposit)
+    if (due <= 0) {
+      toast('รายการนี้ชำระครบแล้ว')
+      return
+    }
+    payingVisit = visit
+    const modal = ensurePayModal()
+    setText('pay-who', `${visit.name || '-'} · วันที่ ${visit.date || '-'}`)
+    setText('pay-price', money(visit.price))
+    setText('pay-paid', money(visit.deposit))
+    setText('pay-due', money(due))
+    setVal('pay-amount', due)
+    openModal(modal)
+  }
+
+  function closePayment () {
+    closeModal($('pay-modal'))
+    payingVisit = null
+  }
+
+  async function confirmPayment () {
+    if (!payingVisit) return
+    const r = await api.post(`/api/visits/${payingVisit.id}/payment`, { amount: val('pay-amount') })
+    closePayment()
+    toast(r.remain > 0 ? `รับเงิน ${baht(r.amount)} แล้ว ยังค้าง ${baht(r.remain)}` : `รับเงิน ${baht(r.amount)} แล้ว ชำระครบ`)
+    if (pendingOpen()) await loadPending()
+    await refreshDetail()
+  }
+
+  // ---------- รายการค้างชำระ (กดจากการ์ด "ค้างชำระ" ในแดชบอร์ด) ----------
+
+  let pendingRows = []
+  const pendingOpen = () => Boolean($('pending-modal')) && !$('pending-modal').classList.contains('hidden')
+
+  function ensurePendingModal () {
+    let modal = $('pending-modal')
+    if (modal) return modal
+    modal = document.createElement('div')
+    modal.id = 'pending-modal'
+    modal.dataset.modal = ''
+    modal.className = 'fixed inset-0 z-[35] hidden flex items-end justify-center bg-black/50 sm:items-center sm:p-4'
+    modal.innerHTML = `
+      <div class="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-w-3xl sm:rounded-3xl">
+        <div class="border-b border-gray-100 px-4 py-3 sm:px-6">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-2xl font-bold text-gray-900">💵 รายการค้างชำระ</h2>
+            <button type="button" data-close class="rounded-full bg-green-700 px-5 py-2.5 text-lg font-semibold text-white hover:bg-green-800">✕ ปิด</button>
+          </div>
+          <p id="pending-summary" class="mt-1 font-semibold text-red-700"></p>
+          <input id="pending-search" type="search" placeholder="ค้นหาชื่อหรือเบอร์โทร" autocomplete="off"
+            class="mt-3 w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-200">
+        </div>
+        <div id="pending-list" class="flex-1 overflow-y-auto bg-gray-50 p-3 sm:p-4"></div>
+      </div>`
+    modal.addEventListener('click', e => {
+      if (e.target === modal || e.target.closest('[data-close]')) closeModal(modal)
+    })
+    modal.querySelector('#pending-search').addEventListener('input', debounce(renderPending, 150))
+    document.body.appendChild(modal)
+    return modal
+  }
+
+  async function loadPending () {
+    const data = await api.get('/api/pending')
+    pendingRows = data.rows
+    setText('pending-summary', `ค้างชำระ ${data.count} ใบ รวม ${baht(data.total)}`)
+    renderPending()
+  }
+
+  function renderPending () {
+    const list = $('pending-list')
+    if (!list) return
+    const q = val('pending-search').trim().toLowerCase()
+    const digits = q.replace(/\D/g, '')
+    const rows = !q ? pendingRows : pendingRows.filter(r =>
+      String(r.name || '').toLowerCase().includes(q) ||
+      (digits !== '' && String(r.phone || '').replace(/\D/g, '').includes(digits)))
+    list.innerHTML = rows.length ? rows.map(r => `
+      <div class="mb-2 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-gray-100">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-xs text-gray-400">📅 ${esc(r.date) || '-'}</p>
+            <p class="break-words text-lg font-semibold text-gray-900">${esc(r.name) || '-'}</p>
+            <p class="text-sm">${telLink(r.phone)}</p>
+          </div>
+          <div class="shrink-0 text-right text-sm">
+            <p class="text-gray-500">ราคา ${money(r.price)}</p>
+            <p class="text-gray-500">ชำระแล้ว ${money(r.deposit)}</p>
+            <p class="text-lg font-bold text-red-600">ค้าง ${money(r.remain)}</p>
+          </div>
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <button type="button" onclick="showCustomerDetail(${r.id})" class="btn-light py-2.5">ดูข้อมูล</button>
+          <button type="button" onclick="openPayment(${r.id})" class="btn bg-green-700 py-2.5 hover:bg-green-800">💵 รับชำระ</button>
+        </div>
+      </div>`).join('')
+      : `<p class="rounded-2xl bg-white p-6 text-center text-gray-500">${q ? 'ไม่พบรายการที่ค้นหา' : 'ไม่มีรายการค้างชำระ'}</p>`
+  }
+
+  async function showPending () {
+    const modal = ensurePendingModal()
+    setVal('pending-search', '')
+    await loadPending()
+    openModal(modal)
+  }
+
   // ---------- หน้าเมนู ----------
 
   async function initMenu () {
@@ -434,15 +587,15 @@
     const cls = small ? 'btn-sm w-full px-1' : 'btn-sm'
     const nameArg = esc(JSON.stringify(c.name || ''))
     return `
-      <button type="button" onclick="showCustomerDetail(${c.id})" class="${cls} bg-pink-500 hover:bg-pink-600">ดู</button>
-      <a href="/edit-customer.html?id=${c.id}" class="${cls} bg-blue-500 hover:bg-blue-600">แก้ไข</a>
-      <a href="/edit-customer.html?id=${c.id}&new=1" class="${cls} bg-indigo-500 hover:bg-indigo-600">${small ? '+ครั้งใหม่' : 'เพิ่มครั้งใหม่'}</a>
-      <button type="button" onclick="deleteCustomerFromList(this, ${c.id}, ${nameArg}, ${Number(c.visit_count) || 1})" class="${cls} bg-red-500 hover:bg-red-600">ลบ</button>`
+      <button type="button" onclick="showCustomerDetail(${c.id})" class="${cls} bg-sky-700 hover:bg-sky-800">ดู</button>
+      <a href="/edit-customer.html?id=${c.id}" class="${cls} bg-amber-400 text-gray-900 hover:bg-amber-500">แก้ไข</a>
+      <a href="/edit-customer.html?id=${c.id}&new=1" class="${cls} bg-green-700 hover:bg-green-800">${small ? '+ครั้งใหม่' : 'เพิ่มครั้งใหม่'}</a>
+      <button type="button" onclick="deleteCustomerFromList(this, ${c.id}, ${nameArg}, ${Number(c.visit_count) || 1})" class="${cls} bg-red-600 hover:bg-red-700">ลบ</button>`
   }
 
   function visitBadge (c) {
     const n = Number(c.visit_count) || 1
-    return n > 1 ? `<span class="ml-1 whitespace-nowrap rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700">มา ${n} ครั้ง</span>` : ''
+    return n > 1 ? `<span class="ml-1 whitespace-nowrap rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">มา ${n} ครั้ง</span>` : ''
   }
 
   function renderPagination (data) {
@@ -454,7 +607,7 @@
     const sorted = [...nums].sort((a, b) => a - b)
     const btn = (label, target, active = false, disabled = false) => `
       <button type="button" ${disabled ? 'disabled' : `onclick="loadCustomers(${target})"`}
-        class="min-w-[2.75rem] rounded-lg px-3 py-2 text-sm font-medium ${active ? 'bg-pink-600 text-white' : 'border border-pink-200 bg-white text-pink-700 hover:bg-pink-100'} disabled:opacity-40">${label}</button>`
+        class="min-w-[2.75rem] rounded-lg px-3 py-2 text-sm font-medium ${active ? 'bg-green-700 text-white' : 'border border-green-200 bg-white text-green-800 hover:bg-green-50'} disabled:opacity-40">${label}</button>`
     let html = btn('‹', page - 1, false, page === 1)
     let prev = 0
     for (const n of sorted) {
@@ -478,7 +631,7 @@
     const table = $('customer-list')
     if (table) {
       table.innerHTML = data.rows.length ? data.rows.map((c, i) => `
-        <tr class="hover:bg-pink-50">
+        <tr class="hover:bg-green-50">
           <td class="border p-2 text-center">${data.offset + i + 1}</td>
           <td class="whitespace-nowrap border p-2">${esc(c.date)}</td>
           <td class="border p-2">${esc(c.name)}${visitBadge(c)}</td>
@@ -492,7 +645,7 @@
     const cards = $('customer-cards')
     if (cards) {
       cards.innerHTML = data.rows.length ? data.rows.map((c, i) => `
-        <div class="rounded-2xl border border-pink-100 bg-white p-4 shadow-sm">
+        <div class="rounded-2xl border border-green-100 bg-white p-4 shadow-sm">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <p class="text-xs text-gray-400">#${data.offset + i + 1} · ${esc(c.date) || '-'}</p>
@@ -717,7 +870,7 @@
         <td class="whitespace-nowrap p-3 text-right">${money(r.price)}</td>
         <td class="whitespace-nowrap p-3 text-right">${money(r.deposit)}</td>
         <td class="whitespace-nowrap p-3 text-right ${num(r.remain) > 0 ? 'font-semibold text-red-600' : 'text-green-700'}">${money(r.remain)}</td>
-        <td class="p-3"><button type="button" onclick="showCustomerDetail(${r.id})" class="btn-sm bg-pink-500 hover:bg-pink-600">ดู</button></td>
+        <td class="p-3"><button type="button" onclick="showCustomerDetail(${r.id})" class="btn-sm bg-green-700 hover:bg-green-800">ดู</button></td>
       </tr>`).join('')
       : '<tr><td colspan="8" class="p-6 text-center text-gray-500">ไม่พบข้อมูลในช่วงนี้</td></tr>'
   }
@@ -761,12 +914,12 @@
       weekCount += r.count
       const isToday = d.date === dash.dates.today
       return `
-        <tr class="cursor-pointer border-b border-gray-100 hover:bg-gray-50 ${isToday ? 'bg-pink-50' : ''}" onclick="openDailySales('${d.date}')">
-          <td class="whitespace-nowrap p-3 font-medium">${d.label}${isToday ? ' <span class="text-xs text-pink-600">(วันนี้)</span>' : ''}
+        <tr class="cursor-pointer border-b border-gray-100 hover:bg-gray-50 ${isToday ? 'bg-green-50' : ''}" onclick="openDailySales('${d.date}')">
+          <td class="whitespace-nowrap p-3 font-medium">${d.label}${isToday ? ' <span class="text-xs text-green-700">(วันนี้)</span>' : ''}
             <div class="text-xs text-gray-400">${d.date}</div></td>
           <td class="whitespace-nowrap p-3">${baht(r.total)}</td>
           <td class="whitespace-nowrap p-3">${r.count} รายการ</td>
-          <td class="hidden whitespace-nowrap p-3 font-medium text-blue-600 sm:table-cell">ดู →</td>
+          <td class="hidden whitespace-nowrap p-3 font-medium text-green-700 sm:table-cell">ดู →</td>
         </tr>`
     }).join('')
     const tbody = $('recent-orders-body')
@@ -885,8 +1038,11 @@
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return
-    if ($('edit-visit-modal') && !$('edit-visit-modal').classList.contains('hidden')) closeEditVisitModal()
-    else if ($('detail-modal') && !$('detail-modal').classList.contains('hidden')) closeCustomerDetail()
+    const isOpen = id => $(id) && !$(id).classList.contains('hidden')
+    if (isOpen('pay-modal')) closePayment()
+    else if (isOpen('edit-visit-modal')) closeEditVisitModal()
+    else if (isOpen('detail-modal')) closeCustomerDetail()
+    else if (isOpen('pending-modal')) closeModal($('pending-modal'))
   })
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -920,6 +1076,8 @@
     loadRecentCustomers: action(loadRecentCustomers),
     refreshDashboard: action(refreshDashboard),
     exportSales,
+    openPayment: action(openPayment),
+    showPending: action(showPending),
     logout: action(logout)
   })
 })()

@@ -9,7 +9,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const express = require('express')
 
-const { openDatabase, transaction, TEXT_FIELDS, PERSONAL_FIELDS, RX_FIELDS, ORDER_FIELDS } = require('./db')
+const { openDatabase, fixBuddhistYears, transaction, TEXT_FIELDS, PERSONAL_FIELDS, RX_FIELDS, ORDER_FIELDS } = require('./db')
 const { createAuth } = require('./auth')
 const { createBackupManager } = require('./backup')
 const { buildCsv, buildExcelXml } = require('./export')
@@ -81,6 +81,8 @@ function createApp (options = {}) {
   const dataDir = path.resolve(options.dataDir || process.env.DATA_DIR || path.join(__dirname, '..', 'data'))
   const dbFile = path.join(dataDir, 'banwaenraikhing.db')
   const db = openDatabase(dbFile)
+  const fixedYears = fixBuddhistYears(db)
+  if (fixedYears) log.log(`แก้วันที่ที่เป็นปี พ.ศ. เป็น ค.ศ. แล้ว ${fixedYears} รายการ`)
   const pin = options.pin !== undefined ? options.pin : (process.env.APP_PIN || '')
   const auth = createAuth({ pin: String(pin).trim(), dataDir })
   const backups = createBackupManager({
@@ -138,6 +140,11 @@ function createApp (options = {}) {
       FROM customers WHERE date BETWEEN ? AND ?
       GROUP BY date ORDER BY date ASC`),
     recent: db.prepare('SELECT id, parent_id, name, phone, date, price FROM customers ORDER BY date DESC, id DESC LIMIT ?'),
+    pendingList: db.prepare(`
+      SELECT id, parent_id, date, name, phone, price, deposit, remain
+      FROM customers WHERE remain > 0
+      ORDER BY date DESC, id DESC`),
+    pay: db.prepare('UPDATE customers SET deposit = ?, remain = ? WHERE id = ?'),
     exportAll: db.prepare('SELECT * FROM customers ORDER BY id ASC'),
     exportRange: db.prepare('SELECT * FROM customers WHERE date BETWEEN ? AND ? ORDER BY id ASC')
   }
@@ -226,7 +233,7 @@ function createApp (options = {}) {
     const body = req.body || {}
     const f = pickText(body, TEXT_FIELDS)
     if (!f.name) throw httpError(400, 'กรุณากรอกชื่อลูกค้า')
-    if (!f.date) f.date = dates.ranges().today
+    f.date = dates.normalizeDate(f.date) || dates.ranges().today
     const price = money(body.price)
     const deposit = money(body.deposit)
     const info = q.insert.run(null, ...TEXT_FIELDS.map(k => f[k]), price, deposit, round2(price - deposit))
@@ -243,6 +250,7 @@ function createApp (options = {}) {
     const row = mustGet(id)
     const f = mergeText(row, req.body || {}, PERSONAL_FIELDS)
     if (!f.name) throw httpError(400, 'กรุณากรอกชื่อลูกค้า')
+    f.date = dates.normalizeDate(f.date)
     q.updatePersonal.run(...PERSONAL_FIELDS.map(k => f[k]), id)
     res.json({ ok: true })
   })
@@ -279,7 +287,7 @@ function createApp (options = {}) {
       ...pickText(body, ['date', ...RX_FIELDS, ...ORDER_FIELDS])
     }
     if (!f.name) throw httpError(400, 'กรุณากรอกชื่อลูกค้า')
-    if (!f.date) f.date = dates.ranges().today
+    f.date = dates.normalizeDate(f.date) || dates.ranges().today
     const price = money(body.price)
     const deposit = money(body.deposit)
     const id = transaction(db, () => {
@@ -301,6 +309,7 @@ function createApp (options = {}) {
     const row = mustGet(id, 'ข้อมูลการมาครั้งนี้')
     const body = req.body || {}
     const f = mergeText(row, body, VISIT_FIELDS)
+    f.date = dates.normalizeDate(f.date)
     const price = mergeMoney(row, body, 'price')
     const deposit = mergeMoney(row, body, 'deposit')
     q.updateVisit.run(
@@ -322,7 +331,32 @@ function createApp (options = {}) {
     res.json({ deleted: 1 })
   })
 
+  // รับชำระ (ไม่ระบุจำนวน = รับครบตามยอดค้าง) ยอดชำระแล้วเก็บในช่อง deposit
+  app.post('/api/visits/:id/payment', (req, res) => {
+    const id = idParam(req.params.id)
+    const row = mustGet(id, 'ข้อมูลการมาครั้งนี้')
+    const price = money(row.price)
+    const paid = money(row.deposit)
+    const due = round2(price - paid)
+    if (due <= 0) throw httpError(400, 'รายการนี้ชำระครบแล้ว')
+    const body = req.body || {}
+    const amount = has(body, 'amount') && body.amount !== null && body.amount !== '' ? money(body.amount) : due
+    if (!(amount > 0)) throw httpError(400, 'กรุณาใส่จำนวนเงินที่รับ')
+    if (amount > due) throw httpError(400, `รับเงินได้ไม่เกินยอดค้าง ${due.toLocaleString('th-TH')} บาท`)
+    const deposit = round2(paid + amount)
+    const remain = round2(price - deposit)
+    q.pay.run(deposit, remain, id)
+    res.json({ ok: true, amount, deposit, remain })
+  })
+
   // ---------- ยอดขาย ----------
+
+  // รายการที่ยังค้างชำระทั้งหมด
+  app.get('/api/pending', (req, res) => {
+    const rows = q.pendingList.all()
+    const total = round2(rows.reduce((s, r) => s + (Number(r.remain) || 0), 0))
+    res.json({ count: rows.length, total, rows })
+  })
 
   app.get('/api/dashboard', (req, res) => {
     const r = dates.ranges()

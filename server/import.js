@@ -21,7 +21,7 @@ const path = require('node:path')
 const readline = require('node:readline')
 const { DatabaseSync } = require('node:sqlite')
 const { openDatabase, transaction } = require('./db')
-const { stamp } = require('./dates')
+const { stamp, normalizeDate } = require('./dates')
 
 const SQLITE_EXT = new Set(['.db', '.sqlite', '.sqlite3'])
 
@@ -91,6 +91,7 @@ function readRecords (file) {
 function normalize (rows, columns) {
   const warnings = []
   let trimmed = 0
+  let buddhist = 0
   const hasIds = rows.some(r => r.id !== undefined && r.id !== null && r.id !== '')
   const known = new Set(columns.map(c => c.name))
   const ignored = new Set()
@@ -120,6 +121,10 @@ function normalize (rows, columns) {
         const s = v === undefined || v === null ? '' : String(v)
         v = s.trim()
         if (v !== s) trimmed++
+        if (name === 'date' && v) {
+          const fixed = normalizeDate(v)
+          if (fixed !== v) { v = fixed; buddhist++ }
+        }
       }
       out[name] = v
     }
@@ -136,6 +141,7 @@ function normalize (rows, columns) {
   if (orphans.length) warnings.push(`มี ${orphans.length} รายการที่ลูกค้าหลักไม่อยู่ในไฟล์ (id: ${orphans.slice(0, 10).map(r => r.id).join(', ')}${orphans.length > 10 ? ', ...' : ''})`)
   const noPrice = records.filter(r => r.price === null)
   if (noPrice.length) warnings.push(`มี ${noPrice.length} รายการที่ไม่มีราคา (id: ${noPrice.slice(0, 10).map(r => r.id).join(', ')}${noPrice.length > 10 ? ', ...' : ''})`)
+  if (buddhist) warnings.push(`แปลงวันที่ที่เป็นปี พ.ศ. เป็น ค.ศ. ${buddhist} รายการ`)
   if (ignored.size) warnings.push(`ข้ามช่องที่ระบบไม่รู้จัก: ${[...ignored].join(', ')}`)
 
   return { records, warnings, trimmed }

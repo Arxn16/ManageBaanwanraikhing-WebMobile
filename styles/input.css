@@ -44,7 +44,7 @@
   .field input,
   .field select,
   .field textarea {
-    @apply w-full rounded-lg border border-gray-300 bg-white p-3 font-normal text-gray-900 focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-200;
+    @apply w-full rounded-lg border border-gray-300 bg-white p-3 font-normal text-gray-900 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-200;
   }
 
   .field input[readonly] {

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>เข้าสู่ระบบ | บ้านแว่นไร่ขิง</title>
-  <meta name="theme-color" content="#db2777">
+  <meta name="theme-color" content="#15803d">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" type="image/png" href="/icons/icon-192.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -15,18 +15,18 @@
   <script src="/js/app.js" defer></script>
 </head>
 
-<body data-page="login" class="flex min-h-screen items-center justify-center bg-pink-100 p-4">
+<body data-page="login" class="flex min-h-screen items-center justify-center bg-green-50 p-4">
 
-  <form id="login-form" class="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl sm:p-8">
-    <img src="/icons/icon-192.png" alt="" class="mx-auto mb-4 h-16 w-16 rounded-2xl">
-    <h1 class="text-2xl font-bold">บ้านแว่นไร่ขิง</h1>
-    <p class="mb-6 mt-1 text-gray-500">กรอก PIN เพื่อเข้าใช้งาน</p>
+  <form id="login-form" class="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-xl ring-1 ring-green-100 sm:p-8">
+    <img src="/icons/logo.png" alt="" class="mx-auto mb-3 h-28 w-auto">
+    <h1 class="sr-only">บ้านแว่นไร่ขิง</h1>
+    <p class="mb-6 mt-1 text-lg font-medium text-green-800">กรอก PIN เพื่อเข้าใช้งาน</p>
 
     <label for="pin" class="sr-only">PIN</label>
     <input id="pin" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="32" required
-      class="w-full rounded-xl border border-gray-300 p-3 text-center text-2xl tracking-[0.5em] focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-200">
+      class="w-full rounded-xl border border-gray-300 p-3 text-center text-2xl tracking-[0.5em] focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-200">
 
-    <button type="submit" class="btn mt-4 w-full bg-pink-600 hover:bg-pink-700">เข้าสู่ระบบ</button>
+    <button type="submit" class="btn mt-4 w-full bg-green-700 hover:bg-green-800">เข้าสู่ระบบ</button>
     <p id="login-error" class="mt-3 min-h-[1.5rem] text-sm text-red-600" role="alert"></p>
   </form>
 
